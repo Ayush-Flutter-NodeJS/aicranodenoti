@@ -125,7 +125,7 @@ app.get("/states/:countryId", (req, res) => {
 // ✅ Fetch Cities by State ID
 app.get("/cities/:stateId", (req, res) => {
   const { stateId } = req.params;
-  const fetchCitiesSQL = "SELECT * FROM bird_cities WHERE stateId = ?"; // Ensure 'cities' table has 'state_id' column
+  const fetchCitiesSQL = "SELECT * FROM bird_cities WHERE state_id = ?"; // Ensure 'cities' table has 'state_id' column
   db.query(fetchCitiesSQL, [stateId], (err, results) => {
     if (err) return res.status(500).json({ success: false, message: err.message });
     res.json({ success: true, cities: results });
