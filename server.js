@@ -96,7 +96,7 @@ app.get("/users", (req, res) => {
 
 // ✅ Fetch All Speakers
 app.get("/speakers", (req, res) => {
-  const fetchSpeakersSQL = "SELECT * FROM speakers"; // Ensure your table 'speakers' exists
+  const fetchSpeakersSQL = "SELECT * FROM tbl_speakers"; // Ensure your table 'speakers' exists
   db.query(fetchSpeakersSQL, (err, results) => {
     if (err) return res.status(500).json({ success: false, message: err.message });
     res.json(results);
