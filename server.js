@@ -13,7 +13,7 @@ const db = mysql.createPool({
   host: "195.35.47.198",
   user: "u919956999_gaisarootUser",
   password: "KUni/L0b#",
-  database:"u919956999_gaisa_app_db",
+  database: "u919956999_gaisa_app_db",
 });
 
 // ✅ Handle Database Connection Errors
@@ -23,7 +23,18 @@ db.on("error", (err) => {
 
 // ✅ User Authentication (Login or Register) with FCM Token
 app.post("/auth", (req, res) => {
-  const { email, name, phone, designation, address, company, country, state, city, fcm_token } = req.body;
+  const {
+    email,
+    name,
+    phone,
+    designation,
+    address,
+    company,
+    country,
+    state,
+    city,
+    fcm_token,
+  } = req.body;
 
   if (!email) {
     return res.status(400).json({ success: false, message: "Email is required" });
@@ -54,16 +65,20 @@ app.post("/auth", (req, res) => {
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, NOW())
       `;
 
-      db.query(insertUserSQL, [name, email, phone, designation, address, company, country, state, city, fcm_token], (err, result) => {
-        if (err) return res.status(500).json({ success: false, message: err.message });
-
-        // ✅ Fetch the newly inserted user
-        db.query("SELECT * FROM ai_ticket_payment WHERE id = ?", [result.insertId], (err, newUser) => {
+      db.query(
+        insertUserSQL,
+        [name, email, phone, designation, address, company, country, state, city, fcm_token],
+        (err, result) => {
           if (err) return res.status(500).json({ success: false, message: err.message });
 
-          res.json({ success: true, message: "User registered successfully!", user: newUser[0] });
-        });
-      });
+          // ✅ Fetch the newly inserted user
+          db.query("SELECT * FROM ai_ticket_payment WHERE id = ?", [result.insertId], (err, newUser) => {
+            if (err) return res.status(500).json({ success: false, message: err.message });
+
+            res.json({ success: true, message: "User registered successfully!", user: newUser[0] });
+          });
+        }
+      );
     }
   });
 });
@@ -76,6 +91,44 @@ app.get("/users", (req, res) => {
     if (err) return res.status(500).json({ success: false, message: err.message });
 
     res.json({ success: true, users: results });
+  });
+});
+
+// ✅ Fetch All Speakers
+app.get("/speakers", (req, res) => {
+  const fetchSpeakersSQL = "SELECT * FROM speakers"; // Ensure your table 'speakers' exists
+  db.query(fetchSpeakersSQL, (err, results) => {
+    if (err) return res.status(500).json({ success: false, message: err.message });
+    res.json(results);
+  });
+});
+
+// ✅ Fetch All Countries
+app.get("/countries", (req, res) => {
+  const fetchCountriesSQL = "SELECT * FROM bird_countries"; // Ensure your table 'countries' exists
+  db.query(fetchCountriesSQL, (err, results) => {
+    if (err) return res.status(500).json({ success: false, message: err.message });
+    res.json({ success: true, countries: results });
+  });
+});
+
+// ✅ Fetch States by Country ID
+app.get("/states/:countryId", (req, res) => {
+  const { countryId } = req.params;
+  const fetchStatesSQL = "SELECT * FROM bird_states WHERE countryId = ?"; // Ensure 'states' table has 'country_id' column
+  db.query(fetchStatesSQL, [countryId], (err, results) => {
+    if (err) return res.status(500).json({ success: false, message: err.message });
+    res.json({ success: true, states: results });
+  });
+});
+
+// ✅ Fetch Cities by State ID
+app.get("/cities/:stateId", (req, res) => {
+  const { stateId } = req.params;
+  const fetchCitiesSQL = "SELECT * FROM bird_cities WHERE stateId = ?"; // Ensure 'cities' table has 'state_id' column
+  db.query(fetchCitiesSQL, [stateId], (err, results) => {
+    if (err) return res.status(500).json({ success: false, message: err.message });
+    res.json({ success: true, cities: results });
   });
 });
 
