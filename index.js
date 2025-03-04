@@ -10,10 +10,10 @@ app.use(bodyParser.json());
 // ✅ Database Connection Pool (Better Performance & Auto-Reconnect)
 const db = mysql.createPool({
   connectionLimit: 10, // Number of concurrent connections
-  host: "localhost",
-  user: "u919956999_gaisarootUser",
-  password: "KUni/L0b#",
-  database: "u919956999_gaisa_app_db",
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASS,
+  database:process.env.DB_NAME,
 });
 
 // ✅ Handle Database Connection Errors
