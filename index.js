@@ -11,9 +11,9 @@ app.use(bodyParser.json());
 const db = mysql.createPool({
   connectionLimit: 10, // Number of concurrent connections
   host: "localhost",
-  user: "root",
-  password: "",
-  database: "eventmanagementapp",
+  user: "u919956999_gaisarootUser",
+  password: "KUni/L0b#",
+  database: "u919956999_gaisa_app_db",
 });
 
 // ✅ Handle Database Connection Errors
