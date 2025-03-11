@@ -7,7 +7,7 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
-// ✅ Database Connection Pool (Better Performance & Auto-Reconnect)
+// ✅ Database Connection Pool
 const db = mysql.createPool({
   connectionLimit: 10,
   host: "195.35.47.198",
@@ -16,30 +16,18 @@ const db = mysql.createPool({
   database: "u919956999_gaisa_app_db",
 });
 
-// ✅ User Authentication (Login/Register) with FCM Token
+// ✅ User Authentication (Login/Register)
 app.post("/auth", async (req, res) => {
   try {
-    let {
-      email,
-      name,
-      phone,
-      designation,
-      address,
-      company,
-      country,
-      state,
-      city,
-      fcm_token,
-    } = req.body;
+    let { email, name, mobile, designation, address, company, country, state, city, fcm_token } = req.body;
 
     if (!email) {
       return res.status(400).json({ success: false, message: "Email is required" });
     }
 
     email = email.trim().toLowerCase();
-
     const checkUserSQL = "SELECT * FROM ai_ticket_payment WHERE LOWER(email) = ?";
-    
+
     db.query(checkUserSQL, [email], (err, results) => {
       if (err) {
         console.error("Query error:", err);
@@ -47,38 +35,18 @@ app.post("/auth", async (req, res) => {
       }
 
       if (results.length > 0) {
-        // ✅ User exists, update FCM token (if provided)
-        if (fcm_token) {
-          const updateFCMSQL = "UPDATE ai_ticket_payment SET fcm_token = ? WHERE LOWER(email) = ?";
-          db.query(updateFCMSQL, [fcm_token, email], (err) => {
-            if (err) {
-              console.error("Update error:", err);
-              return res.status(500).json({ success: false, message: "Error updating FCM token" });
-            }
-
-            db.query(checkUserSQL, [email], (err, updatedResults) => {
-              if (err) {
-                console.error("Re-query error:", err);
-                return res.status(500).json({ success: false, message: "Error fetching user" });
-              }
-              return res.json({ success: true, user: updatedResults[0], message: "Login successful, FCM token updated." });
-            });
-          });
-        } else {
-          return res.json({ success: true, user: results[0], message: "Login successful." });
-        }
+        return res.json({ success: true, user: results[0], message: "Login successful." });
       } else {
-        // ❌ User not found; register if all fields are provided
-        if (!name || !phone || !designation || !address || !company || !country || !state || !city) {
+        if (!name || !mobile || !designation || !address || !company || !country || !state || !city) {
           return res.status(400).json({ success: false, message: "All fields are required for registration" });
         }
 
         const insertUserSQL = `
-          INSERT INTO ai_ticket_payment (name, email, mobile, designation, address, company, country, state, city, fcm_token, status, date) 
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, NOW())
+          INSERT INTO ai_ticket_payment (name, email, mobile, designation, address, company, country, state, city, fcm_token, status, amount, payumoney, date) 
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, '0', '', NOW()) 
         `;
 
-        db.query(insertUserSQL, [name, email, phone, designation, address, company, country, state, city, fcm_token], (err, result) => {
+        db.query(insertUserSQL, [name, email, mobile, designation, address, company, country, state, city, fcm_token], (err, result) => {
           if (err) {
             console.error("Insert error:", err);
             return res.status(500).json({ success: false, message: "Error registering user" });
@@ -96,6 +64,39 @@ app.post("/auth", async (req, res) => {
     });
   } catch (err) {
     console.error("Unexpected error:", err);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+});
+
+// ✅ Update Payment Status (without email)
+app.post("/payment-success", async (req, res) => {
+  const { transaction_id, amount } = req.body;
+
+  if (!transaction_id || !amount) {
+    return res.status(400).json({ success: false, message: "Transaction ID and Amount are required" });
+  }
+
+  try {
+    const updateSQL = `
+      UPDATE ai_ticket_payment 
+      SET status = 1, payumoney = ?, amount = ? 
+      WHERE id = (SELECT id FROM ai_ticket_payment ORDER BY id DESC LIMIT 1)
+    `;
+
+    db.query(updateSQL, [transaction_id, amount], (err, result) => {
+      if (err) {
+        console.error("Payment update error:", err);
+        return res.status(500).json({ success: false, message: "Error updating payment details" });
+      }
+
+      if (result.affectedRows === 0) {
+        return res.status(404).json({ success: false, message: "No pending payment found" });
+      }
+
+      res.json({ success: true, message: "Payment updated successfully!" });
+    });
+  } catch (error) {
+    console.error("Unexpected error:", error);
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 });
