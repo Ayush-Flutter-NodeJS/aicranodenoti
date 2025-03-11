@@ -20,12 +20,11 @@ const db = mysql.createPool({
 app.post("/auth", async (req, res) => {
   try {
     let { email, name, mobile, designation, address, company, country, state, city, fcm_token } = req.body;
-    
+
     if (!email) return res.status(400).json({ success: false, message: "Email is required" });
 
     email = email.trim().toLowerCase();
     const checkUserSQL = "SELECT * FROM ai_ticket_payment WHERE LOWER(email) = ?";
-    
     const [existingUsers] = await db.query(checkUserSQL, [email]);
 
     if (existingUsers.length > 0) {
@@ -42,7 +41,6 @@ app.post("/auth", async (req, res) => {
     `;
 
     const [result] = await db.query(insertUserSQL, [name, email, mobile, designation, address, company, country, state, city, fcm_token]);
-
     const [newUser] = await db.query("SELECT * FROM ai_ticket_payment WHERE id = ?", [result.insertId]);
 
     res.json({ success: true, message: "User registered successfully!", user: newUser[0] });
@@ -73,7 +71,7 @@ app.post("/payment-success", async (req, res) => {
     const updateSQL = `
       UPDATE ai_ticket_payment 
       SET status = 1, payumoney = ?, amount = ? 
-      WHERE email = (SELECT email FROM ai_ticket_payment ORDER BY id DESC LIMIT 1)
+      WHERE email = (SELECT email FROM ai_ticket_payment WHERE status = 0 ORDER BY id DESC LIMIT 1)
     `;
 
     const [result] = await db.query(updateSQL, [payumoney, amount]);
