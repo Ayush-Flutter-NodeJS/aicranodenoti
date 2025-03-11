@@ -1,11 +1,10 @@
 const express = require("express");
 const mysql = require("mysql2/promise"); // ✅ Use promise-based MySQL
 const cors = require("cors");
-const bodyParser = require("body-parser");
 
 const app = express();
 app.use(cors());
-app.use(bodyParser.json());
+app.use(express.json()); // ✅ Use built-in JSON parsing
 
 // ✅ Database Connection Pool
 const db = mysql.createPool({
@@ -37,7 +36,7 @@ app.post("/auth", async (req, res) => {
 
     const insertUserSQL = `
       INSERT INTO ai_ticket_payment (name, email, mobile, designation, address, company, country, state, city, fcm_token, status, amount, payumoney, date) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, '0', '', NOW()) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, '', NOW()) 
     `;
 
     const [result] = await db.query(insertUserSQL, [name, email, mobile, designation, address, company, country, state, city, fcm_token]);
@@ -52,13 +51,13 @@ app.post("/auth", async (req, res) => {
 
 // ✅ Update Payment Status
 app.post("/payment-success", async (req, res) => {
-  const { payumoney, amount } = req.body;
-
-  if (!payumoney || !amount) {
-    return res.status(400).json({ success: false, message: "Transaction ID and Amount are required" });
-  }
-
   try {
+    const { payumoney, amount } = req.body;
+
+    if (!payumoney || !amount) {
+      return res.status(400).json({ success: false, message: "Transaction ID and Amount are required" });
+    }
+
     // ✅ Check if payment already exists
     const checkPaymentSQL = "SELECT * FROM ai_ticket_payment WHERE payumoney = ?";
     const [existingPayments] = await db.query(checkPaymentSQL, [payumoney]);
@@ -67,11 +66,11 @@ app.post("/payment-success", async (req, res) => {
       return res.status(400).json({ success: false, message: "Payment already recorded" });
     }
 
-    // ✅ Update latest unpaid user
+    // ✅ Update the latest unpaid user
     const updateSQL = `
       UPDATE ai_ticket_payment 
       SET status = 1, payumoney = ?, amount = ? 
-      WHERE email = (SELECT email FROM ai_ticket_payment WHERE status = 0 ORDER BY id DESC LIMIT 1)
+      WHERE status = 0 ORDER BY id DESC LIMIT 1
     `;
 
     const [result] = await db.query(updateSQL, [payumoney, amount]);
@@ -127,7 +126,7 @@ app.get("/countries", async (req, res) => {
 app.get("/states/:countryId", async (req, res) => {
   try {
     const { countryId } = req.params;
-    const fetchStatesSQL = "SELECT * FROM bird_states WHERE countryId = ?";
+    const fetchStatesSQL = "SELECT * FROM bird_states WHERE country_id = ?";
     const [states] = await db.query(fetchStatesSQL, [countryId]);
     res.json({ success: true, states });
   } catch (error) {
