@@ -19,7 +19,6 @@ const db = mysql.createPool({
 app.post("/auth", async (req, res) => {
   try {
     let { email, name, mobile, designation, address, company, country, state, city, fcm_token } = req.body;
-
     if (!email) return res.status(400).json({ success: false, message: "Email is required" });
 
     email = email.trim().toLowerCase();
@@ -49,34 +48,54 @@ app.post("/auth", async (req, res) => {
   }
 });
 
+// ✅ Check if a User Has Paid (By Email)
+app.get("/check-payment", async (req, res) => {
+  try {
+    const { email } = req.query;
+    if (!email) return res.status(400).json({ success: false, message: "Email is required" });
+
+    const checkPaymentSQL = "SELECT amount, payumoney FROM ai_ticket_payment WHERE email = ? AND amount > 0";
+    const [payments] = await db.query(checkPaymentSQL, [email]);
+
+    if (payments.length > 0) {
+      return res.json({ success: true, amount: payments[0].amount, payumoney: payments[0].payumoney });
+    }
+
+    res.json({ success: false, message: "No payment found" });
+  } catch (error) {
+    console.error("Check payment error:", error);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+});
+
 // ✅ Update Payment Status
 app.post("/payment-success", async (req, res) => {
   try {
-    const { payumoney, amount } = req.body;
+    const { email, payumoney, amount } = req.body;
 
-    if (!payumoney || !amount) {
-      return res.status(400).json({ success: false, message: "Transaction ID and Amount are required" });
+    if (!email || !payumoney || !amount) {
+      return res.status(400).json({ success: false, message: "Email, Transaction ID, and Amount are required" });
     }
 
-    // ✅ Check if payment already exists
-    const checkPaymentSQL = "SELECT * FROM ai_ticket_payment WHERE payumoney = ?";
+    // ✅ Check if this payment already exists
+    const checkPaymentSQL = "SELECT COUNT(*) AS count FROM ai_ticket_payment WHERE payumoney = ?";
     const [existingPayments] = await db.query(checkPaymentSQL, [payumoney]);
 
-    if (existingPayments.length > 0) {
+    if (existingPayments[0].count > 0) {
       return res.status(400).json({ success: false, message: "Payment already recorded" });
     }
 
-    // ✅ Update the latest unpaid user
+    // ✅ Update payment status for the given email
     const updateSQL = `
       UPDATE ai_ticket_payment 
       SET status = 1, payumoney = ?, amount = ? 
-      WHERE status = 0 ORDER BY id DESC LIMIT 1
+      WHERE email = ?
     `;
 
-    const [result] = await db.query(updateSQL, [payumoney, amount]);
+    const [result] = await db.query(updateSQL, [payumoney, amount, email]);
 
     if (result.affectedRows === 0) {
-      return res.status(404).json({ success: false, message: "No pending payment found" });
+      return res.status(404).json({ success: false, message: "User not found or already paid" });
     }
 
     res.json({ success: true, message: "Payment updated successfully!" });
