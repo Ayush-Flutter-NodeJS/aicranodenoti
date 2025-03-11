@@ -70,9 +70,9 @@ app.post("/auth", async (req, res) => {
 
 // ✅ Update Payment Status (without email)
 app.post("/payment-success", async (req, res) => {
-  const { transaction_id, amount } = req.body;
+  const { payumoney, amount } = req.body;
 
-  if (!transaction_id || !amount) {
+  if (!payumoney || !amount) {
     return res.status(400).json({ success: false, message: "Transaction ID and Amount are required" });
   }
 
@@ -83,7 +83,7 @@ app.post("/payment-success", async (req, res) => {
       WHERE id = (SELECT id FROM ai_ticket_payment ORDER BY id DESC LIMIT 1)
     `;
 
-    db.query(updateSQL, [transaction_id, amount], (err, result) => {
+    db.query(updateSQL, [payumoney, amount], (err, result) => {
       if (err) {
         console.error("Payment update error:", err);
         return res.status(500).json({ success: false, message: "Error updating payment details" });
