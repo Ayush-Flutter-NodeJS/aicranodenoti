@@ -139,7 +139,7 @@ app.get("/states/:countryId", async (req, res) => {
 app.get("/cities/:stateId", async (req, res) => {
   try {
     const { stateId } = req.params;
-    const fetchCitiesSQL = "SELECT * FROM bird_cities WHERE stateId = ?";
+    const fetchCitiesSQL = "SELECT * FROM bird_cities WHERE state_id = ?";
     const [cities] = await db.query(fetchCitiesSQL, [stateId]);
     res.json({ success: true, cities });
   } catch (error) {
