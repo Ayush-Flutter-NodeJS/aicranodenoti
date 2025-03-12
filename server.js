@@ -91,13 +91,17 @@ app.get("/check-payment", async (req, res) => {
   }
 });
 
-// ✅ Update Payment Status
+
+// ✅ Update Payment Status (By Email or Name)
 app.post("/payment-success", async (req, res) => {
   try {
-    const { email, payumoney, amount } = req.body;
+    const { email, name, payumoney, amount } = req.body;
 
-    if (!email || !payumoney || !amount) {
-      return res.status(400).json({ success: false, message: "Email, Transaction ID, and Amount are required" });
+    if ((!email && !name) || !payumoney || !amount) {
+      return res.status(400).json({
+        success: false,
+        message: "Email or Name, Transaction ID, and Amount are required",
+      });
     }
 
     // ✅ Check if this payment already exists
@@ -108,14 +112,14 @@ app.post("/payment-success", async (req, res) => {
       return res.status(400).json({ success: false, message: "Payment already recorded" });
     }
 
-    // ✅ Update payment status for the given email
-    const updateSQL = `
+    // ✅ Update payment status based on either email or name
+    let updateSQL = `
       UPDATE ai_ticket_payment 
       SET status = 1, payumoney = ?, amount = ? 
-      WHERE email = ?
+      WHERE (email = ? OR name = ?)
     `;
 
-    const [result] = await db.query(updateSQL, [payumoney, amount, email]);
+    const [result] = await db.query(updateSQL, [payumoney, amount, email || "", name || ""]);
 
     if (result.affectedRows === 0) {
       return res.status(404).json({ success: false, message: "User not found or already paid" });
@@ -127,6 +131,7 @@ app.post("/payment-success", async (req, res) => {
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 });
+
 
 // ✅ Fetch All Registered Users
 app.get("/users", async (req, res) => {
