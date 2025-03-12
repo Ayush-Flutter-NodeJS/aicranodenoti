@@ -94,9 +94,9 @@ app.get("/check-payment", async (req, res) => {
 // ✅ Update Payment Status
 app.post("/payment-success", async (req, res) => {
   try {
-    const { email, payumoney, amount } = req.body;
+    const { name,email, payumoney, amount } = req.body;
 
-    if (!email || !payumoney || !amount) {
+    if (!name ||!email || !payumoney || !amount) {
       return res.status(400).json({ success: false, message: "Email, Transaction ID, and Amount are required" });
     }
 
