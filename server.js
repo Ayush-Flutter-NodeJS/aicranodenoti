@@ -48,6 +48,29 @@ app.post("/auth", async (req, res) => {
   }
 });
 
+//get name of the user by email
+app.get("/user-name", async (req, res) => {
+  try {
+    const { email } = req.query;
+    if (!email) {
+      return res.status(400).json({ success: false, message: "Email is required" });
+    }
+
+    const getUserSQL = "SELECT name FROM ai_ticket_payment WHERE email = ?";
+    const [users] = await db.query(getUserSQL, [email]);
+
+    if (users.length > 0) {
+      return res.json({ success: true, name: users[0].name });
+    }
+
+    res.status(404).json({ success: false, message: "User not found" });
+  } catch (error) {
+    console.error("Error fetching user name:", error);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+});
+
+
 // ✅ Check if a User Has Paid (By Email)
 app.get("/check-payment", async (req, res) => {
   try {
