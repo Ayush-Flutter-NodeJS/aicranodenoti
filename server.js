@@ -73,6 +73,27 @@ app.get("/get-fcm-token", async (req, res) => {
   }
 });
 
+app.post("/update-fcm-token", async (req, res) => {
+  try {
+    const { email, fcm_token } = req.body;
+    if (!email || !fcm_token) {
+      return res.status(400).json({ success: false, message: "Email and FCM token are required" });
+    }
+
+    const updateTokenSQL = "UPDATE ai_ticket_payment SET fcm_token = ? WHERE email = ?";
+    const [result] = await db.query(updateTokenSQL, [fcm_token, email]);
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    res.json({ success: true, message: "FCM Token updated successfully!" });
+  } catch (error) {
+    console.error("FCM Token update error:", error);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+});
+
 
 //get name of the user by
 app.get("/user-name", async (req, res) => {
