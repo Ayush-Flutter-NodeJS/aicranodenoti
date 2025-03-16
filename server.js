@@ -26,13 +26,19 @@ app.post("/auth", async (req, res) => {
     const [existingUsers] = await db.query(checkUserSQL, [email]);
 
     if (existingUsers.length > 0) {
-      return res.json({ success: true, user: existingUsers[0], message: "Login successful." });
+      // ✅ Update FCM Token if the user exists
+      const updateFCMSQL = "UPDATE ai_ticket_payment SET fcm_token = ? WHERE email = ?";
+      await db.query(updateFCMSQL, [fcm_token, email]);
+
+      return res.json({ success: true, user: existingUsers[0], message: "Login successful. Token updated." });
     }
 
+    // ✅ If the user is new, check if all fields are provided
     if (!name || !mobile || !designation || !address || !company || !country || !state || !city) {
       return res.status(400).json({ success: false, message: "All fields are required for registration" });
     }
 
+    // ✅ Register new user and store FCM token
     const insertUserSQL = `
       INSERT INTO ai_ticket_payment (name, email, mobile, designation, address, company, country, state, city, fcm_token, status, amount, payumoney, date) 
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, '', NOW()) 
@@ -47,6 +53,26 @@ app.post("/auth", async (req, res) => {
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 });
+
+app.get("/get-fcm-token", async (req, res) => {
+  try {
+    const { email } = req.query;
+    if (!email) return res.status(400).json({ success: false, message: "Email is required" });
+
+    const getTokenSQL = "SELECT fcm_token FROM ai_ticket_payment WHERE email = ?";
+    const [users] = await db.query(getTokenSQL, [email]);
+
+    if (users.length > 0 && users[0].fcm_token) {
+      return res.json({ success: true, fcm_token: users[0].fcm_token });
+    }
+
+    res.status(404).json({ success: false, message: "FCM token not found for this user" });
+  } catch (error) {
+    console.error("Error fetching FCM token:", error);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+});
+
 
 //get name of the user by
 app.get("/user-name", async (req, res) => {
