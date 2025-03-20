@@ -124,11 +124,16 @@ app.get("/check-payment", async (req, res) => {
     const { email } = req.query;
     if (!email) return res.status(400).json({ success: false, message: "Email is required" });
 
+    // ✅ Ensure `pass_name` is returned even if status is 0 (unpaid)
     const checkPaymentSQL = "SELECT pass_name, status FROM ai_ticket_payment WHERE email = ?";
     const [payments] = await db.query(checkPaymentSQL, [email]);
 
     if (payments.length > 0) {
-      return res.json({ success: true, pass_name: payments[0].pass_name, status: payments[0].status });
+      return res.json({
+        success: true,
+        pass_name: payments[0].pass_name || "",  // ✅ Ensure pass_name is never undefined
+        status: payments[0].status,  // ✅ Check if payment is completed (1)
+      });
     }
 
     res.json({ success: false, message: "No payment found" });
@@ -137,6 +142,7 @@ app.get("/check-payment", async (req, res) => {
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 });
+
 
 
 // ✅ Update Payment Status (By Email or Name)
