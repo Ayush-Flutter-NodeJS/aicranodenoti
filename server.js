@@ -127,9 +127,9 @@ app.get("/check-payment", async (req, res) => {
     const checkPaymentSQL = "SELECT email, pass_name, status FROM ai_ticket_payment WHERE email = ? AND pass_name IN ('Platinum Delegate Pass', 'Gold Delegate Pass', 'Standard Delegate Pass')";
     const [payments] = await db.query(checkPaymentSQL, [email]);
 
-    if (payments.length > 0) {
-      return res.json({ success: true, amount: payments[0].amount, payumoney: payments[0].payumoney });
-    }
+    // if (payments.length > 0) {
+      return res.json({ success: true, pass_name: payments[0].pass_name, status: payments[0].status });
+    // }
 
     res.json({ success: false, message: "No payment found" });
   } catch (error) {
