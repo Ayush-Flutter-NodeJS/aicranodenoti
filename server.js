@@ -1,12 +1,12 @@
 const express = require("express");
-const mysql = require("mysql2/promise"); // ✅ Use promise-based MySQL
+const mysql = require("mysql2/promise"); // Use promise-based MySQL
 const cors = require("cors");
 
 const app = express();
 app.use(cors());
-app.use(express.json()); // ✅ Use built-in JSON parsing
+app.use(express.json()); // Use built-in JSON parsing
 
-// ✅ Database Connection Pool
+// Database Connection Pool
 const db = mysql.createPool({
   connectionLimit: 10,
   host: "195.35.47.198",
@@ -15,7 +15,7 @@ const db = mysql.createPool({
   database: "u919956999_gaisa_app_db",
 });
 
-// ✅ User Authentication (Login/Register)
+// User Authentication (Login/Register)
 app.post("/auth", async (req, res) => {
   try {
     let { email, name, mobile, designation, address, company, country, state, city, fcm_token } = req.body;
@@ -26,22 +26,22 @@ app.post("/auth", async (req, res) => {
     const [existingUsers] = await db.query(checkUserSQL, [email]);
 
     if (existingUsers.length > 0) {
-      // ✅ Update FCM Token if the user exists
+      // Update FCM Token if the user exists
       const updateFCMSQL = "UPDATE ai_ticket_payment SET fcm_token = ? WHERE email = ?";
       await db.query(updateFCMSQL, [fcm_token, email]);
 
       return res.json({ success: true, user: existingUsers[0], message: "Login successful. Token updated." });
     }
 
-    // ✅ If the user is new, check if all fields are provided
+    // If the user is new, check if all fields are provided
     if (!name || !mobile || !designation || !address || !company || !country || !state || !city) {
       return res.status(400).json({ success: false, message: "All fields are required for registration" });
     }
 
-    // ✅ Register new user and store FCM token
+    // Register new user and store FCM token
     const insertUserSQL = `
-      INSERT INTO ai_ticket_payment (name, email, mobile, designation, address, company, country, state, city, fcm_token, status, amount, payumoney, date) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, '', NOW()) 
+      INSERT INTO ai_ticket_payment (name, email, mobile, designation, address, company, country, state, city, fcm_token, status, amount, payumoney, pass_name, date) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, '', '', NOW()) 
     `;
 
     const [result] = await db.query(insertUserSQL, [name, email, mobile, designation, address, company, country, state, city, fcm_token]);
@@ -54,6 +54,7 @@ app.post("/auth", async (req, res) => {
   }
 });
 
+// Get FCM Token by Email
 app.get("/get-fcm-token", async (req, res) => {
   try {
     const { email } = req.query;
@@ -73,6 +74,7 @@ app.get("/get-fcm-token", async (req, res) => {
   }
 });
 
+// Update FCM Token
 app.post("/update-fcm-token", async (req, res) => {
   try {
     const { email, fcm_token } = req.body;
@@ -94,8 +96,7 @@ app.post("/update-fcm-token", async (req, res) => {
   }
 });
 
-
-//get name of the user by
+// Get User Name by Email
 app.get("/user-name", async (req, res) => {
   try {
     const { email } = req.query;
@@ -117,22 +118,21 @@ app.get("/user-name", async (req, res) => {
   }
 });
 
-
-// ✅ Check if a User Has Paid (By Email)
+// Check Payment Status by Email
 app.get("/check-payment", async (req, res) => {
   try {
     const { email } = req.query;
     if (!email) return res.status(400).json({ success: false, message: "Email is required" });
 
-    // ✅ Ensure `pass_name` is returned even if status is 0 (unpaid)
+    // Fetch payment details including pass_name and status
     const checkPaymentSQL = "SELECT pass_name, status FROM ai_ticket_payment WHERE email = ?";
     const [payments] = await db.query(checkPaymentSQL, [email]);
 
     if (payments.length > 0) {
       return res.json({
         success: true,
-        pass_name: payments[0].pass_name || "",  // ✅ Ensure pass_name is never undefined
-        status: payments[0].status,  // ✅ Check if payment is completed (1)
+        pass_name: payments[0].pass_name || "", // Ensure pass_name is never undefined
+        status: payments[0].status, // Check if payment is completed (1)
       });
     }
 
@@ -143,9 +143,7 @@ app.get("/check-payment", async (req, res) => {
   }
 });
 
-
-
-// ✅ Update Payment Status (By Email or Name)
+// Update Payment Status (By Email or Name)
 app.post("/payment-success", async (req, res) => {
   try {
     const { email, name, payumoney, pass_name } = req.body;
@@ -157,7 +155,7 @@ app.post("/payment-success", async (req, res) => {
       });
     }
 
-    // ✅ Check if this payment already exists
+    // Check if this payment already exists
     const checkPaymentSQL = "SELECT COUNT(*) AS count FROM ai_ticket_payment WHERE payumoney = ?";
     const [existingPayments] = await db.query(checkPaymentSQL, [payumoney]);
 
@@ -165,7 +163,7 @@ app.post("/payment-success", async (req, res) => {
       return res.status(400).json({ success: false, message: "Payment already recorded" });
     }
 
-    // ✅ Check if the user exists
+    // Check if the user exists
     const checkUserSQL = "SELECT id FROM ai_ticket_payment WHERE email = ? OR name = ?";
     const [users] = await db.query(checkUserSQL, [email || "", name || ""]);
 
@@ -173,7 +171,7 @@ app.post("/payment-success", async (req, res) => {
       return res.status(404).json({ success: false, message: "User not found" });
     }
 
-    // ✅ Update payment status and pass name
+    // Update payment status and pass name
     let updateSQL = `
       UPDATE ai_ticket_payment 
       SET status = 1, payumoney = ?, pass_name = ? 
@@ -193,8 +191,7 @@ app.post("/payment-success", async (req, res) => {
   }
 });
 
-
-// ✅ Fetch All Registered Users
+// Fetch All Registered Users
 app.get("/users", async (req, res) => {
   try {
     const fetchUsersSQL = "SELECT id, name, designation, company, fcm_token FROM ai_ticket_payment";
@@ -206,7 +203,7 @@ app.get("/users", async (req, res) => {
   }
 });
 
-// ✅ Fetch All Speakers
+// Fetch All Speakers
 app.get("/speakers", async (req, res) => {
   try {
     const fetchSpeakersSQL = "SELECT * FROM tbl_speakers";
@@ -218,7 +215,7 @@ app.get("/speakers", async (req, res) => {
   }
 });
 
-// ✅ Fetch All Countries
+// Fetch All Countries
 app.get("/countries", async (req, res) => {
   try {
     const fetchCountriesSQL = "SELECT * FROM bird_countries";
@@ -230,7 +227,7 @@ app.get("/countries", async (req, res) => {
   }
 });
 
-// ✅ Fetch States by Country ID
+// Fetch States by Country ID
 app.get("/states/:countryId", async (req, res) => {
   try {
     const { countryId } = req.params;
@@ -243,7 +240,7 @@ app.get("/states/:countryId", async (req, res) => {
   }
 });
 
-// ✅ Fetch Cities by State ID
+// Fetch Cities by State ID
 app.get("/cities/:stateId", async (req, res) => {
   try {
     const { stateId } = req.params;
@@ -256,7 +253,7 @@ app.get("/cities/:stateId", async (req, res) => {
   }
 });
 
-// ✅ Start Server
+// Start Server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
