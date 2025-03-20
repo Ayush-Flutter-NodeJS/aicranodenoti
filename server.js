@@ -26,9 +26,7 @@ app.post("/auth", async (req, res) => {
     const [existingUsers] = await db.query(checkUserSQL, [email]);
 
     if (existingUsers.length > 0) {
-      const updateFCMSQL = "UPDATE ai_ticket_payment SET fcm_token = ? WHERE email = ?";
-      await db.query(updateFCMSQL, [fcm_token, email]);
-
+      await db.query("UPDATE ai_ticket_payment SET fcm_token = ? WHERE email = ?", [fcm_token, email]);
       return res.json({ success: true, user: existingUsers[0], message: "Login successful. Token updated." });
     }
 
@@ -51,40 +49,65 @@ app.post("/auth", async (req, res) => {
   }
 });
 
-// ✅ Check if a User Has Paid (By Email)
+// ✅ Check Payment & Pass Eligibility
 app.get("/check-payment", async (req, res) => {
   try {
     const { email } = req.query;
     if (!email) return res.status(400).json({ success: false, message: "Email is required" });
 
-    const checkPaymentSQL = "SELECT amount, payumoney, pass_name FROM ai_ticket_payment WHERE email = ? AND amount > 0";
+    const checkPaymentSQL = "SELECT amount, payumoney, pass_name FROM ai_ticket_payment WHERE email = ?";
     const [payments] = await db.query(checkPaymentSQL, [email]);
 
-    if (payments.length > 0) {
-      return res.json({
-        success: true,
-        amount: payments[0].amount,
-        payumoney: payments[0].payumoney,
-        pass_name: payments[0].pass_name,
-      });
+    if (payments.length === 0) {
+      return res.json({ success: false, message: "No payment found", showPass: false });
     }
 
-    res.json({ success: false, message: "No payment found" });
+    let { amount, payumoney, pass_name } = payments[0];
+
+    // ❌ If amount is 0, do not show pass
+    if (amount <= 0) {
+      return res.json({ success: false, message: "No valid payment found", showPass: false });
+    }
+
+    // ✅ Determine Pass Eligibility
+    let showPass = false;
+
+    if (pass_name && pass_name.trim() !== "") {
+      // If pass_name is already assigned, show pass
+      showPass = true;
+    } else {
+      // If pass_name is empty, assign based on amount
+      if (amount >= 11210) {
+        pass_name = "Platinum Delegate Pass";
+        showPass = true;
+      } else if (amount >= 4130) {
+        pass_name = "Gold Delegate Pass";
+        showPass = true;
+      }
+    }
+
+    return res.json({
+      success: true,
+      amount,
+      payumoney,
+      pass_name,
+      showPass,
+    });
   } catch (error) {
     console.error("Check payment error:", error);
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 });
 
-// ✅ Update Payment Status (By Email or Name)
+// ✅ Update Payment Status
 app.post("/payment-success", async (req, res) => {
   try {
     const { email, name, payumoney, amount, pass_name } = req.body;
 
-    if ((!email && !name) || !payumoney || !amount || !pass_name) {
+    if ((!email && !name) || !payumoney || !amount) {
       return res.status(400).json({
         success: false,
-        message: "Email or Name, Transaction ID, Amount, and Pass Name are required",
+        message: "Email or Name, Transaction ID, and Amount are required",
       });
     }
 
@@ -95,19 +118,29 @@ app.post("/payment-success", async (req, res) => {
       return res.status(400).json({ success: false, message: "Payment already recorded" });
     }
 
+    // If pass_name is empty, assign based on amount
+    let finalPassName = pass_name;
+    if (!pass_name || pass_name.trim() === "") {
+      if (amount >= 11210) {
+        finalPassName = "Platinum Delegate Pass";
+      } else if (amount >= 4130) {
+        finalPassName = "Gold Delegate Pass";
+      }
+    }
+
     let updateSQL = `
       UPDATE ai_ticket_payment 
       SET status = 1, payumoney = ?, amount = ?, pass_name = ?
       WHERE (email = ? OR name = ?)
     `;
 
-    const [result] = await db.query(updateSQL, [payumoney, amount, pass_name, email || "", name || ""]);
+    const [result] = await db.query(updateSQL, [payumoney, amount, finalPassName, email || "", name || ""]);
 
     if (result.affectedRows === 0) {
       return res.status(404).json({ success: false, message: "User not found or already paid" });
     }
 
-    res.json({ success: true, message: "Payment updated successfully!" });
+    res.json({ success: true, message: "Payment updated successfully!", pass_name: finalPassName });
   } catch (error) {
     console.error("Payment update error:", error);
     res.status(500).json({ success: false, message: "Internal Server Error" });
