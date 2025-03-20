@@ -124,11 +124,11 @@ app.get("/check-payment", async (req, res) => {
     const { email } = req.query;
     if (!email) return res.status(400).json({ success: false, message: "Email is required" });
 
-    const checkPaymentSQL = "SELECT amount, payumoney FROM ai_ticket_payment WHERE email = ? AND amount > 0";
+    const checkPaymentSQL = "SELECT pass_name, status FROM ai_ticket_payment WHERE email = ?";
     const [payments] = await db.query(checkPaymentSQL, [email]);
 
     if (payments.length > 0) {
-      return res.json({ success: true, amount: payments[0].amount, payumoney: payments[0].payumoney });
+      return res.json({ success: true, pass_name: payments[0].pass_name, status: payments[0].status });
     }
 
     res.json({ success: false, message: "No payment found" });
@@ -142,12 +142,12 @@ app.get("/check-payment", async (req, res) => {
 // ✅ Update Payment Status (By Email or Name)
 app.post("/payment-success", async (req, res) => {
   try {
-    const { email, name, payumoney, amount } = req.body;
+    const { email, name, payumoney, pass_name } = req.body;
 
-    if ((!email && !name) || !payumoney || !amount) {
+    if ((!email && !name) || !payumoney || !pass_name) {
       return res.status(400).json({
         success: false,
-        message: "Email or Name, Transaction ID, and Amount are required",
+        message: "Email or Name, Transaction ID, and Pass Name are required",
       });
     }
 
@@ -159,14 +159,22 @@ app.post("/payment-success", async (req, res) => {
       return res.status(400).json({ success: false, message: "Payment already recorded" });
     }
 
-    // ✅ Update payment status based on either email or name
+    // ✅ Check if the user exists
+    const checkUserSQL = "SELECT id FROM ai_ticket_payment WHERE email = ? OR name = ?";
+    const [users] = await db.query(checkUserSQL, [email || "", name || ""]);
+
+    if (users.length === 0) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    // ✅ Update payment status and pass name
     let updateSQL = `
       UPDATE ai_ticket_payment 
-      SET status = 1, payumoney = ?, amount = ? 
+      SET status = 1, payumoney = ?, pass_name = ? 
       WHERE (email = ? OR name = ?)
     `;
 
-    const [result] = await db.query(updateSQL, [payumoney, amount, email || "", name || ""]);
+    const [result] = await db.query(updateSQL, [payumoney, pass_name, email || "", name || ""]);
 
     if (result.affectedRows === 0) {
       return res.status(404).json({ success: false, message: "User not found or already paid" });
