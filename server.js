@@ -124,7 +124,7 @@ app.get("/check-payment", async (req, res) => {
     const { email } = req.query;
     if (!email) return res.status(400).json({ success: false, message: "Email is required" });
 
-    const checkPaymentSQL = "SELECT amount, payumoney FROM ai_ticket_payment WHERE email = ? AND amount > 0";
+    const checkPaymentSQL = "SELECT email, pass_name, status FROM ai_ticket_payment WHERE email = ? AND pass_name IN ('Platinum Delegate Pass', 'Gold Delegate Pass', 'Standard Delegate Pass')";
     const [payments] = await db.query(checkPaymentSQL, [email]);
 
     if (payments.length > 0) {
