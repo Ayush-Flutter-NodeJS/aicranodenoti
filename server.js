@@ -167,6 +167,7 @@ app.post("/payment-success", async (req, res) => {
     `;
 
     const [result] = await db.query(updateSQL, [payumoney, amount, email || "", name || "",pass_name]);
+console.log("pass_name ayush",pass_name);
 
     if (result.affectedRows === 0) {
       return res.status(404).json({ success: false, message: "User not found or already paid" });
