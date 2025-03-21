@@ -166,7 +166,7 @@ app.post("/payment-success", async (req, res) => {
       WHERE (email = ? OR name = ?)
     `;
 
-    const [result] = await db.query(updateSQL, [payumoney, amount,,pass_name, email || "", name || ""]);
+    const [result] = await db.query(updateSQL, [payumoney, amount,pass_name, email || "", name || ""]);
     console.log("Executing SQL:", updateSQL);
     console.log("With Values:", [payumoney, amount, email || "", name || "", pass_name, email]);
     
