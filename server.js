@@ -142,9 +142,9 @@ app.get("/check-payment", async (req, res) => {
 // ✅ Update Payment Status (By Email or Name)
 app.post("/payment-success", async (req, res) => {
   try {
-    const { email, name, payumoney, amount } = req.body;
+    const { email, name, payumoney, amount,pass_name } = req.body;
 
-    if ((!email && !name) || !payumoney || !amount) {
+    if ((!email && !name) || !payumoney || !amount || !pass_name) {
       return res.status(400).json({
         success: false,
         message: "Email or Name, Transaction ID, and Amount are required",
@@ -162,11 +162,11 @@ app.post("/payment-success", async (req, res) => {
     // ✅ Update payment status based on either email or name
     let updateSQL = `
       UPDATE ai_ticket_payment 
-      SET status = 1, payumoney = ?, amount = ? 
+      SET status = 1, payumoney = ?, amount = ? ,pass_name=?
       WHERE (email = ? OR name = ?)
     `;
 
-    const [result] = await db.query(updateSQL, [payumoney, amount, email || "", name || ""]);
+    const [result] = await db.query(updateSQL, [payumoney, amount, email || "", name || "",pass_name]);
 
     if (result.affectedRows === 0) {
       return res.status(404).json({ success: false, message: "User not found or already paid" });
