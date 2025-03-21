@@ -170,7 +170,7 @@ app.post("/payment-success", async (req, res) => {
 console.log("pass_name ayush",pass_name);
 
     if (result.affectedRows === 0) {
-      return res.status(404).json({ success: false, message: "User not found or already paid" });
+      return res.status(404).json({ success: false, message: `User ${pass_name,"updateQu "+updateSQL } not found or already paid`  });
     }
 
     res.json({ success: true, message: "Payment updated successfully!" });
