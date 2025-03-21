@@ -128,7 +128,7 @@ app.get("/check-payment", async (req, res) => {
     const [payments] = await db.query(checkPaymentSQL, [email]);
 
     if (payments.length > 0) {
-      return res.json({ success: true, amount: payments[0].amount, payumoney: payments[0].payumoney });
+      return res.json({ success: true, status: payments[0].status, pass_name: payments[0].pass_name });
     }
 
     res.json({ success: false, message: "No payment found" });
