@@ -144,33 +144,6 @@ app.post("/payment-success", async (req, res) => {
 });
 
 
-// ✅ Fetch Payment Status
-app.get("/payment-status", async (req, res) => {
-  try {
-    const { email } = req.query;
-
-    if (!email) {
-      return res.status(400).json({ success: false, message: "Email is required" });
-    }
-
-    const fetchPaymentSQL = "SELECT status, pass_name, amount FROM ai_ticket_payment WHERE email = ?";
-    const [paymentDetails] = await db.query(fetchPaymentSQL, [email]);
-
-    if (paymentDetails.length === 0) {
-      return res.status(404).json({ success: false, message: "User not found" });
-    }
-
-    res.json({
-      success: true,
-      status: paymentDetails[0].status,
-      pass_name: paymentDetails[0].pass_name,
-      amount: paymentDetails[0].amount,
-    });
-  } catch (error) {
-    console.error("Fetch payment status error:", error);
-    res.status(500).json({ success: false, message: "Internal Server Error" });
-  }
-});
 // ✅ Fetch All Users
 app.get("/users", async (req, res) => {
   try {
