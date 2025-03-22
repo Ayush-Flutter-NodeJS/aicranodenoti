@@ -139,6 +139,29 @@ app.post("/payment-success", async (req, res) => {
   }
 });
 
+app.get('/check-payment', async (req, res) => {
+  const { email } = req.query;  // Assuming email is sent as a query parameter
+
+  if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+  }
+
+  try {
+      const query = 'SELECT status, pass_name FROM ai_ticket_payment WHERE email = ?';
+      const [rows] = await db.execute(query, [email]);
+
+      if (rows.length > 0) {
+          return res.json(rows[0]); // Send payment status and pass details
+      } else {
+          return res.status(404).json({ error: 'User not found' });
+      }
+  } catch (error) {
+      console.error('Database Error:', error);
+      return res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+
 // ✅ Fetch All Users
 app.get("/users", async (req, res) => {
   try {
