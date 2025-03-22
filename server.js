@@ -29,7 +29,7 @@ app.post("/create-order", async (req, res) => {
     const { amount, currency = "INR", receipt } = req.body;
 
     const options = {
-      amount: amount,
+      amount: amount , // Amount in paisa
       currency,
       receipt,
       payment_capture: 1, // Auto-capture payment
@@ -104,7 +104,7 @@ app.post("/auth", async (req, res) => {
   }
 });
 
-// ✅ Update Payment Status and Fetch Details
+// ✅ Update Payment Status
 app.post("/payment-success", async (req, res) => {
   try {
     const { email, name, payumoney, amount, pass_name } = req.body;
@@ -132,16 +132,35 @@ app.post("/payment-success", async (req, res) => {
       return res.status(404).json({ success: false, message: "User not found or already paid" });
     }
 
-    // ✅ Fetch updated payment status
-    const fetchUpdatedSQL = "SELECT status, pass_name, amount FROM ai_ticket_payment WHERE (email = ? OR name = ?)";
-    const [updatedUser] = await db.query(fetchUpdatedSQL, [email || "", name || ""]);
-
-    res.json({ success: true, message: "Payment updated successfully!", payment: updatedUser[0] });
+    res.json({ success: true, message: "Payment updated successfully!" });
   } catch (error) {
     console.error("Payment update error:", error);
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 });
+
+app.get('/check-payment', async (req, res) => {
+  const { email } = req.query;  // Assuming email is sent as a query parameter
+
+  if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+  }
+
+  try {
+      const query = 'SELECT status, pass_name FROM ai_ticket_payment WHERE email = ?';
+      const [rows] = await db.execute(query, [email]);
+
+      if (rows.length > 0) {
+          return res.json(rows[0]); // Send payment status and pass details
+      } else {
+          return res.status(404).json({ error: 'User not found' });
+      }
+  } catch (error) {
+      console.error('Database Error:', error);
+      return res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
 
 // ✅ Fetch All Users
 app.get("/users", async (req, res) => {
@@ -152,6 +171,40 @@ app.get("/users", async (req, res) => {
   } catch (error) {
     console.error("Fetch users error:", error);
     res.status(500).json({ success: false, message: "Error fetching users" });
+  }
+});
+
+// ✅ Fetch Countries, States, and Cities
+app.get("/countries", async (req, res) => {
+  try {
+    const fetchCountriesSQL = "SELECT * FROM bird_countries";
+    const [countries] = await db.query(fetchCountriesSQL);
+    res.json({ success: true, countries });
+  } catch (error) {
+    console.error("Fetch countries error:", error);
+    res.status(500).json({ success: false, message: "Error fetching countries" });
+  }
+});
+
+app.get("/states/:countryId", async (req, res) => {
+  try {
+    const fetchStatesSQL = "SELECT * FROM bird_states WHERE countryId = ?";
+    const [states] = await db.query(fetchStatesSQL, [req.params.countryId]);
+    res.json({ success: true, states });
+  } catch (error) {
+    console.error("Fetch states error:", error);
+    res.status(500).json({ success: false, message: "Error fetching states" });
+  }
+});
+
+app.get("/cities/:stateId", async (req, res) => {
+  try {
+    const fetchCitiesSQL = "SELECT * FROM bird_cities WHERE state_id = ?";
+    const [cities] = await db.query(fetchCitiesSQL, [req.params.stateId]);
+    res.json({ success: true, cities });
+  } catch (error) {
+    console.error("Fetch cities error:", error);
+    res.status(500).json({ success: false, message: "Error fetching cities" });
   }
 });
 
