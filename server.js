@@ -29,7 +29,7 @@ app.post("/create-order", async (req, res) => {
     const { amount, currency = "INR", receipt } = req.body;
 
     const options = {
-      amount: amount * 100, // Amount in paisa
+      amount: amount , // Amount in paisa
       currency,
       receipt,
       payment_capture: 1, // Auto-capture payment
