@@ -72,15 +72,36 @@ app.post("/verify-payment", async (req, res) => {
 app.get("/check-payment", async (req, res) => {
   try {
     const { email } = req.query;
-    if (!email) return res.status(400).json({ success: false, message: "Email is required" });
+
+    // Log the incoming request and query parameters
+    console.log("Incoming request to /check-payment");
+    console.log("Query parameters:", req.query);
+
+    if (!email) {
+      console.log("Email is missing in the request");
+      return res.status(400).json({ success: false, message: "Email is required" });
+    }
+
+    console.log("Checking payment status for email:", email);
 
     const checkPaymentSQL = "SELECT email, pass_name, status FROM ai_ticket_payment WHERE email = ? AND pass_name IN ('Platinum Delegate Pass', 'Gold Delegate Pass', 'Standard Delegate Pass');";
+    
+    // Log the SQL query being executed
+    console.log("Executing SQL query:", checkPaymentSQL);
+    console.log("Query parameters:", [email]);
+
     const [payments] = await db.query(checkPaymentSQL, [email]);
 
+    // Log the result from the database
+    console.log("Database query result:", payments);
+
     if (payments.length > 0) {
+      console.log("Payment found for email:", email);
+      console.log("Payment details:", payments[0]);
       return res.json({ success: true, status: payments[0].status, pass_name: payments[0].pass_name });
     }
 
+    console.log("No payment found for email:", email);
     res.json({ success: false, message: "No payment found" });
   } catch (error) {
     console.error("Check payment error:", error);
