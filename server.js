@@ -72,10 +72,23 @@ app.post("/verify-payment", async (req, res) => {
 app.get("/check-payment", async (req, res) => {
   try {
     const { email } = req.query;
-    if (!email) return res.status(400).json({ success: false, message: "Email is required" });
+    if (!email) {
+      console.log("❌ Email is missing in request");
+      return res.status(400).json({ success: false, message: "Email is required" });
+    }
 
-    const checkPaymentSQL = "SELECT email, pass_name, status FROM ai_ticket_payment WHERE email = ? AND pass_name IN ('Platinum Delegate Pass', 'Gold Delegate Pass', 'Standard Delegate Pass');";
+    console.log(`🔍 Checking payment for email: ${email}`);
+
+    const checkPaymentSQL = `
+      SELECT email, pass_name, status 
+      FROM ai_ticket_payment 
+      WHERE email = ? 
+      AND pass_name IN ('Platinum Delegate Pass', 'Gold Delegate Pass', 'Standard Delegate Pass');
+    `;
+
     const [payments] = await db.query(checkPaymentSQL, [email]);
+
+    console.log("✅ Query Result:", payments);
 
     if (payments.length > 0) {
       return res.json({ success: true, status: payments[0].status, pass_name: payments[0].pass_name });
@@ -83,10 +96,11 @@ app.get("/check-payment", async (req, res) => {
 
     res.json({ success: false, message: "No payment found" });
   } catch (error) {
-    console.error("Check payment error:", error);
+    console.error("🚨 Check payment error:", error);
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 });
+
 
 // ✅ User Authentication (Login/Register)
 app.post("/auth", async (req, res) => {
