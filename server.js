@@ -44,29 +44,29 @@ app.post("/create-order", async (req, res) => {
 });
 
 // ✅ Verify Payment (Razorpay)
-// app.post("/verify-payment", async (req, res) => {
-//   try {
-//     const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+app.post("/verify-payment", async (req, res) => {
+  try {
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
 
-//     if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
-//       return res.status(400).json({ success: false, message: "Missing required payment details" });
-//     }
+    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+      return res.status(400).json({ success: false, message: "Missing required payment details" });
+    }
 
-//     const generated_signature = crypto
-//       .createHmac("sha256", razorpay.key_secret)
-//       .update(`${razorpay_order_id}|${razorpay_payment_id}`)
-//       .digest("hex");
+    const generated_signature = crypto
+      .createHmac("sha256", razorpay.key_secret)
+      .update(`${razorpay_order_id}|${razorpay_payment_id}`)
+      .digest("hex");
 
-//     if (generated_signature !== razorpay_signature) {
-//       return res.status(400).json({ success: false, message: "Payment verification failed" });
-//     }
+    if (generated_signature !== razorpay_signature) {
+      return res.status(400).json({ success: false, message: "Payment verification failed" });
+    }
 
-//     res.json({ success: true, message: "Payment verified successfully", payment_id: razorpay_payment_id });
-//   } catch (error) {
-//     console.error("Payment verification error:", error);
-//     res.status(500).json({ success: false, message: "Error verifying payment" });
-//   }
-// });
+    res.json({ success: true, message: "Payment verified successfully", payment_id: razorpay_payment_id });
+  } catch (error) {
+    console.error("Payment verification error:", error);
+    res.status(500).json({ success: false, message: "Error verifying payment" });
+  }
+});
 
 // ✅ Check if a User Has Paid (By Email)
 app.get("/check-payment", async (req, res) => {
