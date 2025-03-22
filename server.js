@@ -43,6 +43,68 @@ app.post("/create-order", async (req, res) => {
   }
 });
 
+app.get("/user-name", async (req, res) => {
+  try {
+    const { email } = req.query;
+    if (!email) {
+      return res.status(400).json({ success: false, message: "Email is required" });
+    }
+
+    const getUserSQL = "SELECT name FROM ai_ticket_payment WHERE email = ?";
+    const [users] = await db.query(getUserSQL, [email]);
+
+    if (users.length > 0) {
+      return res.json({ success: true, name: users[0].name });
+    }
+
+    res.status(404).json({ success: false, message: "User not found" });
+  } catch (error) {
+    console.error("Error fetching user name:", error);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+});
+
+app.get("/get-fcm-token", async (req, res) => {
+  try {
+    const { email } = req.query;
+    if (!email) return res.status(400).json({ success: false, message: "Email is required" });
+
+    const getTokenSQL = "SELECT fcm_token FROM ai_ticket_payment WHERE email = ?";
+    const [users] = await db.query(getTokenSQL, [email]);
+
+    if (users.length > 0 && users[0].fcm_token) {
+      return res.json({ success: true, fcm_token: users[0].fcm_token });
+    }
+
+    res.status(404).json({ success: false, message: "FCM token not found for this user" });
+  } catch (error) {
+    console.error("Error fetching FCM token:", error);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+});
+
+app.post("/update-fcm-token", async (req, res) => {
+  try {
+    const { email, fcm_token } = req.body;
+    if (!email || !fcm_token) {
+      return res.status(400).json({ success: false, message: "Email and FCM token are required" });
+    }
+
+    const updateTokenSQL = "UPDATE ai_ticket_payment SET fcm_token = ? WHERE email = ?";
+    const [result] = await db.query(updateTokenSQL, [fcm_token, email]);
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    res.json({ success: true, message: "FCM Token updated successfully!" });
+  } catch (error) {
+    console.error("FCM Token update error:", error);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+});
+
+
 // ✅ Verify Payment (Razorpay)
 app.post("/verify-payment", async (req, res) => {
   try {
@@ -174,6 +236,44 @@ app.post("/payment-success", async (req, res) => {
   } catch (error) {
     console.error("Payment update error:", error);
     res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+});
+
+// ✅ Fetch All Countries
+app.get("/countries", async (req, res) => {
+  try {
+    const fetchCountriesSQL = "SELECT * FROM bird_countries";
+    const [countries] = await db.query(fetchCountriesSQL);
+    res.json({ success: true, countries });
+  } catch (error) {
+    console.error("Fetch countries error:", error);
+    res.status(500).json({ success: false, message: "Error fetching countries" });
+  }
+});
+
+// ✅ Fetch States by Country ID
+app.get("/states/:countryId", async (req, res) => {
+  try {
+    const { countryId } = req.params;
+    const fetchStatesSQL = "SELECT * FROM bird_states WHERE countryId = ?";
+    const [states] = await db.query(fetchStatesSQL, [countryId]);
+    res.json({ success: true, states });
+  } catch (error) {
+    console.error("Fetch states error:", error);
+    res.status(500).json({ success: false, message: "Error fetching states" });
+  }
+});
+
+// ✅ Fetch Cities by State ID
+app.get("/cities/:stateId", async (req, res) => {
+  try {
+    const { stateId } = req.params;
+    const fetchCitiesSQL = "SELECT * FROM bird_cities WHERE state_id = ?";
+    const [cities] = await db.query(fetchCitiesSQL, [stateId]);
+    res.json({ success: true, cities });
+  } catch (error) {
+    console.error("Fetch cities error:", error);
+    res.status(500).json({ success: false, message: "Error fetching cities" });
   }
 });
 
