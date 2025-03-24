@@ -47,14 +47,25 @@ const upload = multer({ storage });
 // ✅ Upload Profile Picture
 app.post("/upload-profile-picture", upload.single("image"), async (req, res) => {
   try {
-    const { email } = req.body;
-    if (!email || !req.file) return res.status(400).json({ success: false, message: "Email and image required" });
+    console.log("Received file:", req.file);  // Debug file
+    console.log("Received email:", req.body.email);  // Debug email
 
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: "No file uploaded" });
+    }
+    if (!req.body.email) {
+      return res.status(400).json({ success: false, message: "Email is required" });
+    }
+
+    const { email } = req.body;
     const imagePath = req.file.filename;
+
     const updateSQL = "UPDATE ai_ticket_payment SET profile_picture = ? WHERE email = ?";
     const [result] = await db.query(updateSQL, [imagePath, email]);
 
-    if (result.affectedRows === 0) return res.status(404).json({ success: false, message: "User not found" });
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
 
     res.json({ success: true, message: "Profile picture updated!", image_url: `/uploads/${imagePath}` });
   } catch (error) {
@@ -62,6 +73,7 @@ app.post("/upload-profile-picture", upload.single("image"), async (req, res) => 
     res.status(500).json({ success: false, message: "Server Error" });
   }
 });
+
 
 // ✅ Get Profile Picture
 app.get("/profile-picture", async (req, res) => {
