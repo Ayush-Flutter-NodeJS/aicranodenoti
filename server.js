@@ -178,6 +178,37 @@ app.post("/update-fcm-token", async (req, res) => {
 });
 
 
+app.get("/user-details", async (req, res) => {
+  try {
+    const { email } = req.query;
+
+    if (!email) {
+      return res.status(400).json({ success: false, message: "Email is required" });
+    }
+
+    const getUserSQL = "SELECT email, pass_name, profile_picture FROM ai_ticket_payment WHERE email = ?";
+    const [users] = await db.query(getUserSQL, [email]);
+
+    if (users.length > 0) {
+      let user = users[0];
+
+      // If profile_picture exists, return the full image URL
+      user.profile_picture = user.profile_picture
+        ? `http://srv743703.hstgr.cloud:3000/uploads/${user.profile_picture}`
+        : null; // Set to null if no profile picture is available
+
+      return res.json({ success: true, user });
+    }
+
+    res.status(404).json({ success: false, message: "User not found" });
+  } catch (error) {
+    console.error("Error fetching user details:", error);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+});
+
+
+
 // ✅ Verify Payment (Razorpay)
 app.post("/verify-payment", async (req, res) => {
   try {
