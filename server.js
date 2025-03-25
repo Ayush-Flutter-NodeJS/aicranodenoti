@@ -232,7 +232,7 @@ app.get("/all-users", async (req, res) => {
 
 
 app.post('/save-checkboxes', (req, res) => {
-  const { email, areasOfExpertise, technologiesOfInterest, startupsInterests, investmentInterests } = req.body;
+  const { email, areas_of_expertise, technologies_of_interest, startups_innovation_interests, investment_interests } = req.body;
 
   console.log("Received Data:", req.body); // Log incoming request data
 
@@ -249,10 +249,10 @@ app.post('/save-checkboxes', (req, res) => {
                  WHERE email = ?`;
 
   const values = [
-    areasOfExpertise ? JSON.stringify(areasOfExpertise) : null,  
-    technologiesOfInterest ? JSON.stringify(technologiesOfInterest) : null,  
-    startupsInterests ? JSON.stringify(startupsInterests) : null,  
-    investmentInterests ? JSON.stringify(investmentInterests) : null,  
+    areas_of_expertise || null,  
+    technologies_of_interest || null,  
+    startups_innovation_interests || null,  
+    investment_interests || null,  
     email
   ];
 
