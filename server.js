@@ -234,7 +234,10 @@ app.get("/all-users", async (req, res) => {
 app.post('/save-checkboxes', (req, res) => {
   const { email, areasOfExpertise, technologiesOfInterest, startupsInterests, investmentInterests } = req.body;
 
+  console.log("Received Data:", req.body); // Log incoming request data
+
   if (!email) {
+    console.error("Error: Email is required");
     return res.status(400).json({ message: 'Email is required' });
   }
 
@@ -253,17 +256,27 @@ app.post('/save-checkboxes', (req, res) => {
     email
   ];
 
+  console.log("Executing Query:", query);
+  console.log("Query Values:", values);
+
   db.query(query, values, (err, result) => {
     if (err) {
-      console.error('Error saving data:', err);
+      console.error('Database Error:', err);
       return res.status(500).json({ message: 'Database error' });
     }
+
+    console.log("SQL Execution Result:", result);
+
     if (result.affectedRows === 0) {
+      console.warn("No user found for email:", email);
       return res.status(404).json({ message: 'No user found with this email' });
     }
+
+    console.log("Data saved successfully for email:", email);
     res.json({ message: 'Data saved successfully' });
   });
 });
+
 
 
 //  Verify Payment (Razorpay)
