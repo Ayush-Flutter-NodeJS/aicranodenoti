@@ -232,25 +232,39 @@ app.get("/all-users", async (req, res) => {
 
 
 app.post('/save-checkboxes', (req, res) => {
-  const { email, areas_of_expertise, technologies_of_interest,  startups_innovation_interests,  investment_interests } = req.body;
-  
+  const { email, areasOfExpertise, technologiesOfInterest, startupsInterests, investmentInterests } = req.body;
+
+  if (!email) {
+    return res.status(400).json({ message: 'Email is required' });
+  }
+
   const query = `UPDATE ai_ticket_payment SET 
                  areas_of_expertise = ?, 
                  technologies_of_interest = ?, 
                  startups_innovation_interests = ?, 
                  investment_interests = ? 
                  WHERE email = ?`;
-  
-  const values = [ areas_of_expertise,technologies_of_interest, startups_innovation_interests,  investment_interests,email];
+
+  const values = [
+    areasOfExpertise ? JSON.stringify(areasOfExpertise) : null,  
+    technologiesOfInterest ? JSON.stringify(technologiesOfInterest) : null,  
+    startupsInterests ? JSON.stringify(startupsInterests) : null,  
+    investmentInterests ? JSON.stringify(investmentInterests) : null,  
+    email
+  ];
 
   db.query(query, values, (err, result) => {
     if (err) {
       console.error('Error saving data:', err);
       return res.status(500).json({ message: 'Database error' });
     }
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: 'No user found with this email' });
+    }
     res.json({ message: 'Data saved successfully' });
   });
 });
+
 
 //  Verify Payment (Razorpay)
 app.post("/verify-payment", async (req, res) => {
