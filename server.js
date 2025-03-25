@@ -232,7 +232,7 @@ app.get("/all-users", async (req, res) => {
 
 
 app.post('/save-checkboxes', (req, res) => {
-  const { email, areasOfExpertise, technologiesOfInterest, startupsInterests, investmentInterests } = req.body;
+  const { email, areas_of_expertise, technologies_of_interest,  startups_innovation_interests,  investment_interests } = req.body;
   
   const query = `UPDATE ai_ticket_payment SET 
                  areas_of_expertise = ?, 
@@ -241,7 +241,7 @@ app.post('/save-checkboxes', (req, res) => {
                  investment_interests = ? 
                  WHERE email = ?`;
   
-  const values = [areasOfExpertise, technologiesOfInterest, startupsInterests, investmentInterests, email];
+  const values = [ email,areas_of_expertise,technologies_of_interest, startups_innovation_interests,  investment_interests,];
 
   db.query(query, values, (err, result) => {
     if (err) {
