@@ -1,5 +1,5 @@
 const express = require("express");
-const mysql = require("mysql2/promise"); // ✅ Use promise-based MySQL
+const mysql = require("mysql2/promise"); //  Use promise-based MySQL
 const Razorpay = require("razorpay");
 const crypto = require("crypto");
 const cors = require("cors");
@@ -9,14 +9,14 @@ const fs = require("fs");
 
 const app = express();
 app.use(cors());
-app.use(express.json()); // ✅ Use built-in JSON parsing
+app.use(express.json()); //  Use built-in JSON parsing
 
-// ✅ Serve uploaded images as static files
+//  Serve uploaded images as static files
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 
 
-// ✅ Database Connection Pool
+//  Database Connection Pool
 const db = mysql.createPool({
   connectionLimit: 10,
   host: "195.35.47.198",
@@ -25,13 +25,13 @@ const db = mysql.createPool({
   database: "u919956999_gaisa_app_db",
 });
 
-// ✅ Initialize Razorpay
+//  Initialize Razorpay
 const razorpay = new Razorpay({
   key_id: "rzp_live_vOWkG1W1TBWQ1H", // Use live keys
   key_secret: "BXmaeiUMUE10pIb4GUIlMuwb", // Replace with actual key secret
 });
 
-// ✅ Create Order (Razorpay)
+//  Create Order (Razorpay)
 app.post("/create-order", async (req, res) => {
   try {
     const { amount, currency = "INR", receipt } = req.body;
@@ -51,7 +51,7 @@ app.post("/create-order", async (req, res) => {
   }
 });
 
-// ✅ Get Profile Picture
+//  Get Profile Picture
 app.get("/profile-picture", async (req, res) => {
   try {
     const { email } = req.query;
@@ -69,11 +69,11 @@ app.get("/profile-picture", async (req, res) => {
   }
 });
 
-// ✅ Multer Storage for Profile Pictures
+//  Multer Storage for Profile Pictures
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const uploadPath = path.join(__dirname, "uploads");
-    if (!fs.existsSync(uploadPath)) fs.mkdirSync(uploadPath);
+    if (!fs.existsSync(uploadPath)) fs.mkdirSync(uploadPath, { recursive: true });  // Ensure folder exists
     cb(null, uploadPath);
   },
   filename: (req, file, cb) => {
@@ -82,6 +82,7 @@ const storage = multer.diskStorage({
     cb(null, uniqueFilename);
   },
 });
+
 const upload = multer({ storage });
 
 // Upload Profile Picture
@@ -209,7 +210,7 @@ app.get("/user-details", async (req, res) => {
 
 
 
-// ✅ Verify Payment (Razorpay)
+//  Verify Payment (Razorpay)
 app.post("/verify-payment", async (req, res) => {
   try {
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
@@ -234,12 +235,12 @@ app.post("/verify-payment", async (req, res) => {
   }
 });
 
-// ✅ Check if a User Has Paid (By Email)
+//  Check if a User Has Paid (By Email)
 app.get("/check-payment", async (req, res) => {
   try {
     const { email } = req.query;
     if (!email) {
-      console.log("❌ Email is missing in request");
+      console.log(" Email is missing in request");
       return res.status(400).json({ success: false, message: "Email is required" });
     }
 
@@ -254,7 +255,7 @@ app.get("/check-payment", async (req, res) => {
 
     const [payments] = await db.query(checkPaymentSQL, [email]);
 
-    console.log("✅ Query Result:", payments);
+    console.log(" Query Result:", payments);
 
     if (payments.length > 0) {
       return res.json({ success: true, status: payments[0].status, pass_name: payments[0].pass_name });
@@ -268,7 +269,7 @@ app.get("/check-payment", async (req, res) => {
 });
 
 
-// ✅ User Authentication (Login/Register)
+//  User Authentication (Login/Register)
 app.post("/auth", async (req, res) => {
   try {
     let { email, name, mobile, designation, address, company, country, state, city, fcm_token } = req.body;
@@ -304,7 +305,7 @@ app.post("/auth", async (req, res) => {
   }
 });
 
-// ✅ Update Payment Status and Fetch Details
+//  Update Payment Status and Fetch Details
 app.post("/payment-success", async (req, res) => {
   try {
     const { email, name, payumoney, amount, pass_name } = req.body;
@@ -332,7 +333,7 @@ app.post("/payment-success", async (req, res) => {
       return res.status(404).json({ success: false, message: "User not found or already paid" });
     }
 
-    // ✅ Fetch updated payment status
+    // Fetch updated payment status
     const fetchUpdatedSQL = "SELECT status, pass_name, amount FROM ai_ticket_payment WHERE (email = ? OR name = ?)";
     const [updatedUser] = await db.query(fetchUpdatedSQL, [email || "", name || ""]);
 
@@ -343,7 +344,7 @@ app.post("/payment-success", async (req, res) => {
   }
 });
 
-// ✅ Fetch All Countries
+//  Fetch All Countries
 app.get("/countries", async (req, res) => {
   try {
     const fetchCountriesSQL = "SELECT * FROM bird_countries";
@@ -355,7 +356,7 @@ app.get("/countries", async (req, res) => {
   }
 });
 
-// ✅ Fetch States by Country ID
+//  Fetch States by Country ID
 app.get("/states/:countryId", async (req, res) => {
   try {
     const { countryId } = req.params;
@@ -368,7 +369,7 @@ app.get("/states/:countryId", async (req, res) => {
   }
 });
 
-// ✅ Fetch Cities by State ID
+//  Fetch Cities by State ID
 app.get("/cities/:stateId", async (req, res) => {
   try {
     const { stateId } = req.params;
@@ -382,7 +383,7 @@ app.get("/cities/:stateId", async (req, res) => {
 });
 
 
-// ✅ Fetch All Users
+//  Fetch All Users
 app.get("/users", async (req, res) => {
   try {
     const fetchUsersSQL = "SELECT id, name, designation, company, fcm_token FROM ai_ticket_payment";
@@ -394,6 +395,6 @@ app.get("/users", async (req, res) => {
   }
 });
 
-// ✅ Start Server
+// Start Server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
