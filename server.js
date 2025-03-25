@@ -231,6 +231,27 @@ app.get("/all-users", async (req, res) => {
 });
 
 
+app.post('/save-checkboxes', (req, res) => {
+  const { email, areasOfExpertise, technologiesOfInterest, startupsInterests, investmentInterests } = req.body;
+  
+  const query = `UPDATE ai_ticket_payment SET 
+                 areas_of_expertise = ?, 
+                 technologies_of_interest = ?, 
+                 startups_innovation_interests = ?, 
+                 investment_interests = ? 
+                 WHERE email = ?`;
+  
+  const values = [areasOfExpertise, technologiesOfInterest, startupsInterests, investmentInterests, email];
+
+  db.query(query, values, (err, result) => {
+    if (err) {
+      console.error('Error saving data:', err);
+      return res.status(500).json({ message: 'Database error' });
+    }
+    res.json({ message: 'Data saved successfully' });
+  });
+});
+
 //  Verify Payment (Razorpay)
 app.post("/verify-payment", async (req, res) => {
   try {
