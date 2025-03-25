@@ -241,7 +241,7 @@ app.post('/save-checkboxes', (req, res) => {
                  investment_interests = ? 
                  WHERE email = ?`;
   
-  const values = [ email,areas_of_expertise,technologies_of_interest, startups_innovation_interests,  investment_interests,];
+  const values = [ areas_of_expertise,technologies_of_interest, startups_innovation_interests,  investment_interests,email];
 
   db.query(query, values, (err, result) => {
     if (err) {
