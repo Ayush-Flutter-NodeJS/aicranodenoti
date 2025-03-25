@@ -209,6 +209,27 @@ app.get("/user-details", async (req, res) => {
 });
 
 
+//get all the user details
+app.get("/all-users", async (req, res) => {
+  try {
+    const getUsersSQL = "SELECT email, pass_name, profile_picture FROM ai_ticket_payment";
+    const [users] = await db.query(getUsersSQL);
+
+    // Format profile picture URL
+    const formattedUsers = users.map(user => ({
+      ...user,
+      profile_picture: user.profile_picture
+        ? `http://srv743703.hstgr.cloud:3000/uploads/${user.profile_picture}`
+        : null, // Set to null if no profile picture
+    }));
+
+    res.json({ success: true, users: formattedUsers });
+  } catch (error) {
+    console.error("Error fetching all users:", error);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+});
+
 
 //  Verify Payment (Razorpay)
 app.post("/verify-payment", async (req, res) => {
