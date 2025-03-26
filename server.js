@@ -115,6 +115,52 @@ app.post("/upload-profile-picture", upload.single("image"), async (req, res) => 
   }
 });
 
+////same interset api
+
+app.post("/fetch-matched-users", async (req, res) => {
+  const { email } = req.body;
+  
+  try {
+      // Fetch user's interests
+      const [userData] = await db.query(
+          "SELECT areas_of_expertise, technologies_of_interest, startups_innovation_interests, investment_interests FROM ai_ticket_payment WHERE email = ?", 
+          [email]
+      );
+
+      if (!userData.length) {
+          return res.status(404).json({ message: "User not found" });
+      }
+
+      const userInterests = [
+          ...JSON.parse(userData[0].areas_of_expertise || "[]"),
+          ...JSON.parse(userData[0].technologies_of_interest || "[]"),
+          ...JSON.parse(userData[0].startups_innovation_interests || "[]"),
+          ...JSON.parse(userData[0].investment_interests || "[]"),
+      ];
+
+      if (userInterests.length === 0) {
+          return res.json([]);
+      }
+
+      // Find users with at least one common interest
+      const [matchedUsers] = await db.query(`
+          SELECT email, name, designation, company, fcm_token 
+          FROM ai_ticket_payment 
+          WHERE email != ? 
+          AND (
+              JSON_OVERLAPS(areas_of_expertise, ?) OR 
+              JSON_OVERLAPS(technologies_of_interest, ?) OR 
+              JSON_OVERLAPS(startups_innovation_interests, ?) OR 
+              JSON_OVERLAPS(investment_interests, ?)
+          )
+      `, [email, JSON.stringify(userInterests), JSON.stringify(userInterests), JSON.stringify(userInterests), JSON.stringify(userInterests)]);
+
+      res.json(matchedUsers);
+  } catch (error) {
+      console.error("Error fetching matched users:", error);
+      res.status(500).json({ message: "Server error" });
+  }
+});
 
 
 app.get("/user-name", async (req, res) => {
