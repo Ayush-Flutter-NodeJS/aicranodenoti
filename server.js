@@ -20,9 +20,9 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 const db = mysql.createPool({
   connectionLimit: 10,
   host: "195.35.47.198",
-  user: "u919956999_gaisarootUser",
-  password: "KUni/L0b#",
-  database: "u919956999_gaisa_app_db",
+  user: "u919956999_gaisaUser",
+  password: "6KnNLGN0i3S",
+  database: "u919956999_gaisa_db",
 });
 
 //  Initialize Razorpay
@@ -378,7 +378,7 @@ app.get("/check-payment", async (req, res) => {
 
     res.json({ success: false, message: "No payment found" });
   } catch (error) {
-    console.error("🚨 Check payment error:", error);
+    console.error(" Check payment error:", error);
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 });
@@ -387,7 +387,7 @@ app.get("/check-payment", async (req, res) => {
 //  User Authentication (Login/Register)
 app.post("/auth", async (req, res) => {
   try {
-    let { email, name, mobile, designation, address, company, country, state, city, fcm_token } = req.body;
+    let { email, name, mobile, designation, address, company, country, state, city, fcm_token, edition } = req.body;
     if (!email) return res.status(400).json({ success: false, message: "Email is required" });
 
     email = email.trim().toLowerCase();
@@ -401,16 +401,16 @@ app.post("/auth", async (req, res) => {
       return res.json({ success: true, user: existingUsers[0], message: "Login successful. Token updated." });
     }
 
-    if (!name || !mobile || !designation || !address || !company || !country || !state || !city) {
+    if (!name || !mobile || !designation || !address || !company || !country || !state || !city || !edition) {
       return res.status(400).json({ success: false, message: "All fields are required for registration" });
     }
 
     const insertUserSQL = `
-      INSERT INTO ai_ticket_payment (name, email, mobile, designation, address, company, country, state, city, fcm_token, status, amount, payumoney, date) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, '', NOW()) 
+      INSERT INTO ai_ticket_payment (name, email, mobile, designation, address, company, country, state, city, fcm_token, edition, status, amount, payumoney, date) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, '', NOW()) 
     `;
 
-    const [result] = await db.query(insertUserSQL, [name, email, mobile, designation, address, company, country, state, city, fcm_token]);
+    const [result] = await db.query(insertUserSQL, [name, email, mobile, designation, address, company, country, state, city, fcm_token, edition]);
     const [newUser] = await db.query("SELECT * FROM ai_ticket_payment WHERE id = ?", [result.insertId]);
 
     res.json({ success: true, message: "User registered successfully!", user: newUser[0] });
@@ -419,6 +419,7 @@ app.post("/auth", async (req, res) => {
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 });
+
 
 //  Update Payment Status and Fetch Details
 app.post("/payment-success", async (req, res) => {
@@ -501,7 +502,12 @@ app.get("/cities/:stateId", async (req, res) => {
 //  Fetch All Users
 app.get("/users", async (req, res) => {
   try {
-    const fetchUsersSQL = "SELECT id, name, designation, company, fcm_token FROM ai_ticket_payment";
+    const fetchUsersSQL = `
+      SELECT id, name, designation, company, fcm_token 
+      FROM ai_ticket_payment 
+      WHERE edition = '5th_edition'
+    `;
+    
     const [users] = await db.query(fetchUsersSQL);
     res.json({ success: true, users });
   } catch (error) {
@@ -510,6 +516,7 @@ app.get("/users", async (req, res) => {
   }
 });
 
+
 // Start Server
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
