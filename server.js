@@ -162,6 +162,30 @@ app.post("/fetch-matched-users", async (req, res) => {
   }
 });
 
+//visiotor pass
+app.post("/update-visitor-pass", async (req, res) => {
+  const { email, pass_name } = req.body;
+
+  if (!email || !pass_name) {
+    return res.status(400).json({ success: false, message: "Missing email or pass_name" });
+  }
+
+  try {
+    const [result] = await db.execute(
+      "UPDATE ai_ticket_payment SET pass_name = ? WHERE email = ?",
+      [pass_name, email]
+    );
+
+    if (result.affectedRows > 0) {
+      res.json({ success: true, message: "Pass updated to Visitor Pass." });
+    } else {
+      res.status(404).json({ success: false, message: "User not found." });
+    }
+  } catch (err) {
+    console.error("Update error:", err);
+    res.status(500).json({ success: false, message: "Server error." });
+  }
+});
 
 app.get("/user-name", async (req, res) => {
   try {
