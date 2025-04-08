@@ -278,6 +278,28 @@ app.get("/user-details", async (req, res) => {
   }
 });
 
+//delete account
+
+router.delete('/delete-account', async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    const [result] = await db.promise().query(
+      'DELETE FROM ai_ticket_payment WHERE email = ?',
+      [email]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.json({ message: 'Account deleted successfully' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Error deleting account' });
+  }
+});
+
 
 //get all the user details
 app.get("/all-users", async (req, res) => {
