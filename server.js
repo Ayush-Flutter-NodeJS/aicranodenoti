@@ -278,25 +278,27 @@ app.get("/user-details", async (req, res) => {
   }
 });
 
+
 //delete account
 
-router.delete('/delete-account', async (req, res) => {
+app.delete("/delete-account", async (req, res) => {
   const { email } = req.body;
 
+  if (!email) {
+    return res.status(400).json({ message: "Email is required" });
+  }
+
   try {
-    const [result] = await db.promise().query(
-      'DELETE FROM ai_ticket_payment WHERE email = ?',
-      [email]
-    );
+    const [result] = await db.query("DELETE FROM ai_ticket_payment WHERE email = ?", [email]);
 
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ message: 'User not found' });
+    if (result.affectedRows > 0) {
+      return res.json({ message: "Account deleted successfully" });
+    } else {
+      return res.status(404).json({ message: "User not found" });
     }
-
-    res.json({ message: 'Account deleted successfully' });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Error deleting account' });
+  } catch (error) {
+    console.error("Error deleting account:", error);
+    return res.status(500).json({ message: "Internal server error" });
   }
 });
 
