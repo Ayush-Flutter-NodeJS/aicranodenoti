@@ -25,6 +25,14 @@ const db = mysql.createPool({
   database: "u919956999_gaisa_db",
 });
 
+const db2 = mysql.createPool({
+  connectionLimit: 10,
+  host: "195.35.47.198",
+  user: "u919956999_indiastartupUR",
+  password: "AIzaSyDk1",
+  database: "u919956999_indiastartupDB",
+});
+
 //  Initialize Razorpay
 const razorpay = new Razorpay({
   key_id: "rzp_live_vOWkG1W1TBWQ1H", // Use live keys
@@ -468,6 +476,42 @@ app.post("/auth", async (req, res) => {
   }
 });
 
+//  User Authentication (Login/Register)
+app.post("/auth:appType", async (req, res) => {
+  try {
+    const { appType } = req.params;
+    let { email, name, mobile, designation, address, company, country, state, city, fcm_token, edition } = req.body;
+    if (!email) return res.status(400).json({ success: false, message: "Email is required" });
+
+    email = email.trim().toLowerCase();
+    const checkUserSQL = "SELECT * FROM ai_ticket_payment WHERE LOWER(email) = ?";
+    const [existingUsers] = await db.query(checkUserSQL, [email]);
+
+    if (existingUsers.length > 0) {
+      const updateFCMSQL = "UPDATE ai_ticket_payment SET fcm_token = ? WHERE email = ?";
+      await db.query(updateFCMSQL, [fcm_token, email]);
+
+      return res.json({ success: true, user: existingUsers[0], message: appType });
+    }
+
+    if (!name || !mobile || !designation || !address || !company || !country || !state || !city || !edition) {
+      return res.status(400).json({ success: false, message: "All fields are required for registration" });
+    }
+
+    const insertUserSQL = `
+      INSERT INTO ai_ticket_payment (name, email, mobile, designation, address, company, country, state, city, fcm_token, edition, status, amount, payumoney, date) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, '', NOW()) 
+    `;
+
+    const [result] = await db.query(insertUserSQL, [name, email, mobile, designation, address, company, country, state, city, fcm_token, edition]);
+    const [newUser] = await db.query("SELECT * FROM ai_ticket_payment WHERE id = ?", [result.insertId]);
+
+    res.json({ success: true, message: "User registered successfully!", user: newUser[0] });
+  } catch (error) {
+    console.error("Auth error:", error);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+});
 
 //  Update Payment Status and Fetch Details
 app.post("/payment-success", async (req, res) => {
