@@ -608,7 +608,7 @@ app.post("/auth", async (req, res) => {
       }
     }
 
-    //new user
+    //new user 
 
     // if (
     //   !name ||
@@ -628,6 +628,7 @@ app.post("/auth", async (req, res) => {
     // }
 
     if (appType == "gaisa") {
+
       if (
         !name ||
         !mobile ||
@@ -674,7 +675,10 @@ app.post("/auth", async (req, res) => {
         message: "User registered successfully!",
         user: newUser[0],
       });
-    } else if ((appType = "mahakum")) {
+    }
+     else if (appType =="mahakum") {
+
+
       if (
         !name ||
         !mobile ||
@@ -694,29 +698,23 @@ app.post("/auth", async (req, res) => {
       const insertUserSQL = `INSERT INTO indiafirst_delegate (name, email, mobile, designation, address, country, state, city, fcm_token, edition, status, amount, payumoney, date) 
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, '', NOW()) 
     `;
-    console.log("line 697");
-
       const [result] = await db2.query(insertUserSQL, [
-        "Ayushaa",
-        "john.doe@example.com",
-        "7217732278",
-        "MD",
-        "J21,saket,NEW DELHI,110017",
-        "",
-        "Delhi",
-        "Delhi",
-        null,
-        "3th_Edition",
+        name,
+        email,
+        mobile,
+        designation,
+        address,
+        country,
+        state,
+        city,
+        fcm_token,
+        edition,
       ]);
-
-      console.log("line 710");
-      
 
       const [newUser] = await db2.query(
         "SELECT * FROM indiafirst_delegate WHERE id = ?",
         [result.insertId]
       );
-      console.log("line 717");
 
       res.json({
         success: true,
@@ -726,9 +724,7 @@ app.post("/auth", async (req, res) => {
     }
   } catch (error) {
     console.error("Auth error:", error);
-    res
-      .status(500)
-      .json({ success: false, message: "Internal Server Error", error: error });
+    res.status(500).json({ success: false, message: "Internal Server Error",error:error });
   }
 });
 
