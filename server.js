@@ -491,7 +491,7 @@ app.post("/auth", async (req, res) => {
       const updateFCMSQL = "UPDATE ai_ticket_payment SET fcm_token = ? WHERE email = ?";
       await db.query(updateFCMSQL, [fcm_token, email]);
 
-      return res.json({ success: true, user: existingUsers[0], message: appType });
+      return res.json({ success: true, user: "existingUsers[0]", message: appType });
     }
 
     if (!name || !mobile || !designation || !address || !company || !country || !state || !city || !edition) {
