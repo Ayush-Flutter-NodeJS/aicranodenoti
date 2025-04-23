@@ -14,8 +14,6 @@ app.use(express.json()); //  Use built-in JSON parsing
 //  Serve uploaded images as static files
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-
-
 //  Database Connection Pool
 const db = mysql.createPool({
   connectionLimit: 10,
@@ -63,14 +61,24 @@ app.post("/create-order", async (req, res) => {
 app.get("/profile-picture", async (req, res) => {
   try {
     const { email } = req.query;
-    if (!email) return res.status(400).json({ success: false, message: "Email required" });
+    if (!email)
+      return res
+        .status(400)
+        .json({ success: false, message: "Email required" });
 
-    const getSQL = "SELECT profile_picture FROM ai_ticket_payment WHERE email = ?";
+    const getSQL =
+      "SELECT profile_picture FROM ai_ticket_payment WHERE email = ?";
     const [users] = await db.query(getSQL, [email]);
 
-    if (!users.length || !users[0].profile_picture) return res.status(404).json({ success: false, message: "Profile picture not found" });
+    if (!users.length || !users[0].profile_picture)
+      return res
+        .status(404)
+        .json({ success: false, message: "Profile picture not found" });
 
-    res.json({ success: true, image_url: `/uploads/${users[0].profile_picture}` });
+    res.json({
+      success: true,
+      image_url: `/uploads/${users[0].profile_picture}`,
+    });
   } catch (error) {
     console.error("Error fetching profile picture:", error);
     res.status(500).json({ success: false, message: "Server Error" });
@@ -81,12 +89,15 @@ app.get("/profile-picture", async (req, res) => {
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const uploadPath = path.join(__dirname, "uploads");
-    if (!fs.existsSync(uploadPath)) fs.mkdirSync(uploadPath, { recursive: true });  // Ensure folder exists
+    if (!fs.existsSync(uploadPath))
+      fs.mkdirSync(uploadPath, { recursive: true }); // Ensure folder exists
     cb(null, uploadPath);
   },
   filename: (req, file, cb) => {
     const ext = path.extname(file.originalname);
-    const uniqueFilename = `${Date.now()}-${Math.random().toString(36).slice(-6)}${ext}`;
+    const uniqueFilename = `${Date.now()}-${Math.random()
+      .toString(36)
+      .slice(-6)}${ext}`;
     cb(null, uniqueFilename);
   },
 });
@@ -94,64 +105,80 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 // Upload Profile Picture
-app.post("/upload-profile-picture", upload.single("image"), async (req, res) => {
-  try {
-    console.log("Received file:", req.file);  // Debug file
-    console.log("Received email:", req.body.email);  // Debug email
+app.post(
+  "/upload-profile-picture",
+  upload.single("image"),
+  async (req, res) => {
+    try {
+      console.log("Received file:", req.file); // Debug file
+      console.log("Received email:", req.body.email); // Debug email
 
-    if (!req.file) {
-      return res.status(400).json({ success: false, message: "No file uploaded" });
+      if (!req.file) {
+        return res
+          .status(400)
+          .json({ success: false, message: "No file uploaded" });
+      }
+      if (!req.body.email) {
+        return res
+          .status(400)
+          .json({ success: false, message: "Email is required" });
+      }
+
+      const { email } = req.body;
+      const imagePath = req.file.filename;
+
+      const updateSQL =
+        "UPDATE ai_ticket_payment SET profile_picture = ? WHERE email = ?";
+      const [result] = await db.query(updateSQL, [imagePath, email]);
+
+      if (result.affectedRows === 0) {
+        return res
+          .status(404)
+          .json({ success: false, message: "User not found" });
+      }
+
+      res.json({
+        success: true,
+        message: "Profile picture updated!",
+        image_url: `/uploads/${imagePath}`,
+      });
+    } catch (error) {
+      console.error("Profile picture upload error:", error);
+      res.status(500).json({ success: false, message: "Server Error" });
     }
-    if (!req.body.email) {
-      return res.status(400).json({ success: false, message: "Email is required" });
-    }
-
-    const { email } = req.body;
-    const imagePath = req.file.filename;
-
-    const updateSQL = "UPDATE ai_ticket_payment SET profile_picture = ? WHERE email = ?";
-    const [result] = await db.query(updateSQL, [imagePath, email]);
-
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ success: false, message: "User not found" });
-    }
-
-    res.json({ success: true, message: "Profile picture updated!", image_url: `/uploads/${imagePath}` });
-  } catch (error) {
-    console.error("Profile picture upload error:", error);
-    res.status(500).json({ success: false, message: "Server Error" });
   }
-});
+);
 
 ////same interset api
 
 app.post("/fetch-matched-users", async (req, res) => {
   const { email } = req.body;
-  
+
   try {
-      // Fetch user's interests
-      const [userData] = await db.query(
-          "SELECT areas_of_expertise, technologies_of_interest, startups_innovation_interests, investment_interests FROM ai_ticket_payment WHERE email = ?", 
-          [email]
-      );
+    // Fetch user's interests
+    const [userData] = await db.query(
+      "SELECT areas_of_expertise, technologies_of_interest, startups_innovation_interests, investment_interests FROM ai_ticket_payment WHERE email = ?",
+      [email]
+    );
 
-      if (!userData.length) {
-          return res.status(404).json({ message: "User not found" });
-      }
+    if (!userData.length) {
+      return res.status(404).json({ message: "User not found" });
+    }
 
-      const userInterests = [
-          ...JSON.parse(userData[0].areas_of_expertise || "[]"),
-          ...JSON.parse(userData[0].technologies_of_interest || "[]"),
-          ...JSON.parse(userData[0].startups_innovation_interests || "[]"),
-          ...JSON.parse(userData[0].investment_interests || "[]"),
-      ];
+    const userInterests = [
+      ...JSON.parse(userData[0].areas_of_expertise || "[]"),
+      ...JSON.parse(userData[0].technologies_of_interest || "[]"),
+      ...JSON.parse(userData[0].startups_innovation_interests || "[]"),
+      ...JSON.parse(userData[0].investment_interests || "[]"),
+    ];
 
-      if (userInterests.length === 0) {
-          return res.json([]);
-      }
+    if (userInterests.length === 0) {
+      return res.json([]);
+    }
 
-      // Find users with at least one common interest
-      const [matchedUsers] = await db.query(`
+    // Find users with at least one common interest
+    const [matchedUsers] = await db.query(
+      `
           SELECT email, name, designation, company, fcm_token 
           FROM ai_ticket_payment 
           WHERE email != ? 
@@ -161,12 +188,20 @@ app.post("/fetch-matched-users", async (req, res) => {
               JSON_OVERLAPS(startups_innovation_interests, ?) OR 
               JSON_OVERLAPS(investment_interests, ?)
           )
-      `, [email, JSON.stringify(userInterests), JSON.stringify(userInterests), JSON.stringify(userInterests), JSON.stringify(userInterests)]);
+      `,
+      [
+        email,
+        JSON.stringify(userInterests),
+        JSON.stringify(userInterests),
+        JSON.stringify(userInterests),
+        JSON.stringify(userInterests),
+      ]
+    );
 
-      res.json(matchedUsers);
+    res.json(matchedUsers);
   } catch (error) {
-      console.error("Error fetching matched users:", error);
-      res.status(500).json({ message: "Server error" });
+    console.error("Error fetching matched users:", error);
+    res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -175,7 +210,9 @@ app.post("/update-visitor-pass", async (req, res) => {
   const { email, pass_name } = req.body;
 
   if (!email || !pass_name) {
-    return res.status(400).json({ success: false, message: "Missing email or pass_name" });
+    return res
+      .status(400)
+      .json({ success: false, message: "Missing email or pass_name" });
   }
 
   try {
@@ -199,7 +236,9 @@ app.get("/user-name", async (req, res) => {
   try {
     const { email } = req.query;
     if (!email) {
-      return res.status(400).json({ success: false, message: "Email is required" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Email is required" });
     }
 
     const getUserSQL = "SELECT name FROM ai_ticket_payment WHERE email = ?";
@@ -219,16 +258,22 @@ app.get("/user-name", async (req, res) => {
 app.get("/get-fcm-token", async (req, res) => {
   try {
     const { email } = req.query;
-    if (!email) return res.status(400).json({ success: false, message: "Email is required" });
+    if (!email)
+      return res
+        .status(400)
+        .json({ success: false, message: "Email is required" });
 
-    const getTokenSQL = "SELECT fcm_token FROM ai_ticket_payment WHERE email = ?";
+    const getTokenSQL =
+      "SELECT fcm_token FROM ai_ticket_payment WHERE email = ?";
     const [users] = await db.query(getTokenSQL, [email]);
 
     if (users.length > 0 && users[0].fcm_token) {
       return res.json({ success: true, fcm_token: users[0].fcm_token });
     }
 
-    res.status(404).json({ success: false, message: "FCM token not found for this user" });
+    res
+      .status(404)
+      .json({ success: false, message: "FCM token not found for this user" });
   } catch (error) {
     console.error("Error fetching FCM token:", error);
     res.status(500).json({ success: false, message: "Internal Server Error" });
@@ -239,14 +284,19 @@ app.post("/update-fcm-token", async (req, res) => {
   try {
     const { email, fcm_token } = req.body;
     if (!email || !fcm_token) {
-      return res.status(400).json({ success: false, message: "Email and FCM token are required" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Email and FCM token are required" });
     }
 
-    const updateTokenSQL = "UPDATE ai_ticket_payment SET fcm_token = ? WHERE email = ?";
+    const updateTokenSQL =
+      "UPDATE ai_ticket_payment SET fcm_token = ? WHERE email = ?";
     const [result] = await db.query(updateTokenSQL, [fcm_token, email]);
 
     if (result.affectedRows === 0) {
-      return res.status(404).json({ success: false, message: "User not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
     }
 
     res.json({ success: true, message: "FCM Token updated successfully!" });
@@ -256,16 +306,18 @@ app.post("/update-fcm-token", async (req, res) => {
   }
 });
 
-
 app.get("/user-details", async (req, res) => {
   try {
     const { email } = req.query;
 
     if (!email) {
-      return res.status(400).json({ success: false, message: "Email is required" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Email is required" });
     }
 
-    const getUserSQL = "SELECT email, pass_name, profile_picture FROM ai_ticket_payment WHERE email = ?";
+    const getUserSQL =
+      "SELECT email, pass_name, profile_picture FROM ai_ticket_payment WHERE email = ?";
     const [users] = await db.query(getUserSQL, [email]);
 
     if (users.length > 0) {
@@ -286,7 +338,6 @@ app.get("/user-details", async (req, res) => {
   }
 });
 
-
 //delete account
 
 app.delete("/delete-account", async (req, res) => {
@@ -297,7 +348,10 @@ app.delete("/delete-account", async (req, res) => {
   }
 
   try {
-    const [result] = await db.query("DELETE FROM ai_ticket_payment WHERE email = ?", [email]);
+    const [result] = await db.query(
+      "DELETE FROM ai_ticket_payment WHERE email = ?",
+      [email]
+    );
 
     if (result.affectedRows > 0) {
       return res.json({ message: "Account deleted successfully" });
@@ -310,15 +364,15 @@ app.delete("/delete-account", async (req, res) => {
   }
 });
 
-
 //get all the user details
 app.get("/all-users", async (req, res) => {
   try {
-    const getUsersSQL = "SELECT email, pass_name, profile_picture FROM ai_ticket_payment";
+    const getUsersSQL =
+      "SELECT email, pass_name, profile_picture FROM ai_ticket_payment";
     const [users] = await db.query(getUsersSQL);
 
     // Format profile picture URL
-    const formattedUsers = users.map(user => ({
+    const formattedUsers = users.map((user) => ({
       ...user,
       profile_picture: user.profile_picture
         ? `http://srv743703.hstgr.cloud:3000/uploads/${user.profile_picture}`
@@ -332,15 +386,20 @@ app.get("/all-users", async (req, res) => {
   }
 });
 
-
-app.post('/save-checkboxes', (req, res) => {
-  const { email, areas_of_expertise, technologies_of_interest, startups_innovation_interests, investment_interests } = req.body;
+app.post("/save-checkboxes", (req, res) => {
+  const {
+    email,
+    areas_of_expertise,
+    technologies_of_interest,
+    startups_innovation_interests,
+    investment_interests,
+  } = req.body;
 
   console.log("Received Data:", req.body); // Log incoming request data
 
   if (!email) {
     console.error("Error: Email is required");
-    return res.status(400).json({ message: 'Email is required' });
+    return res.status(400).json({ message: "Email is required" });
   }
 
   const query = `UPDATE ai_ticket_payment SET 
@@ -351,11 +410,11 @@ app.post('/save-checkboxes', (req, res) => {
                  WHERE email = ?`;
 
   const values = [
-    areas_of_expertise || null,  
-    technologies_of_interest || null,  
-    startups_innovation_interests || null,  
-    investment_interests || null,  
-    email
+    areas_of_expertise || null,
+    technologies_of_interest || null,
+    startups_innovation_interests || null,
+    investment_interests || null,
+    email,
   ];
 
   console.log("Executing Query:", query);
@@ -363,31 +422,32 @@ app.post('/save-checkboxes', (req, res) => {
 
   db.query(query, values, (err, result) => {
     if (err) {
-      console.error('Database Error:', err);
-      return res.status(500).json({ message: 'Database error' });
+      console.error("Database Error:", err);
+      return res.status(500).json({ message: "Database error" });
     }
 
     console.log("SQL Execution Result:", result);
 
     if (result.affectedRows === 0) {
       console.warn("No user found for email:", email);
-      return res.status(404).json({ message: 'No user found with this email' });
+      return res.status(404).json({ message: "No user found with this email" });
     }
 
     console.log("Data saved successfully for email:", email);
-    res.json({ message: 'Data saved successfully' });
+    res.json({ message: "Data saved successfully" });
   });
 });
-
-
 
 //  Verify Payment (Razorpay)
 app.post("/verify-payment", async (req, res) => {
   try {
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } =
+      req.body;
 
     if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
-      return res.status(400).json({ success: false, message: "Missing required payment details" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Missing required payment details" });
     }
 
     const generated_signature = crypto
@@ -396,13 +456,21 @@ app.post("/verify-payment", async (req, res) => {
       .digest("hex");
 
     if (generated_signature !== razorpay_signature) {
-      return res.status(400).json({ success: false, message: "Payment verification failed" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Payment verification failed" });
     }
 
-    res.json({ success: true, message: "Payment verified successfully", payment_id: razorpay_payment_id });
+    res.json({
+      success: true,
+      message: "Payment verified successfully",
+      payment_id: razorpay_payment_id,
+    });
   } catch (error) {
     console.error("Payment verification error:", error);
-    res.status(500).json({ success: false, message: "Error verifying payment" });
+    res
+      .status(500)
+      .json({ success: false, message: "Error verifying payment" });
   }
 });
 
@@ -412,7 +480,9 @@ app.get("/check-payment", async (req, res) => {
     const { email } = req.query;
     if (!email) {
       console.log(" Email is missing in request");
-      return res.status(400).json({ success: false, message: "Email is required" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Email is required" });
     }
 
     console.log(`🔍 Checking payment for email: ${email}`);
@@ -429,7 +499,11 @@ app.get("/check-payment", async (req, res) => {
     console.log(" Query Result:", payments);
 
     if (payments.length > 0) {
-      return res.json({ success: true, status: payments[0].status, pass_name: payments[0].pass_name });
+      return res.json({
+        success: true,
+        status: payments[0].status,
+        pass_name: payments[0].pass_name,
+      });
     }
 
     res.json({ success: false, message: "No payment found" });
@@ -438,7 +512,6 @@ app.get("/check-payment", async (req, res) => {
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 });
-
 
 //  User Authentication (Login/Register)
 // app.post("/auth", async (req, res) => {
@@ -462,8 +535,8 @@ app.get("/check-payment", async (req, res) => {
 //     }
 
 //     const insertUserSQL = `
-//       INSERT INTO ai_ticket_payment (name, email, mobile, designation, address, company, country, state, city, fcm_token, edition, status, amount, payumoney, date) 
-//       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, '', NOW()) 
+//       INSERT INTO ai_ticket_payment (name, email, mobile, designation, address, company, country, state, city, fcm_token, edition, status, amount, payumoney, date)
+//       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, '', NOW())
 //     `;
 
 //     const [result] = await db.query(insertUserSQL, [name, email, mobile, designation, address, company, country, state, city, fcm_token, edition]);
@@ -479,23 +552,79 @@ app.get("/check-payment", async (req, res) => {
 //  User Authentication (Login/Register)
 app.post("/auth", async (req, res) => {
   try {
-    const appType  = req.query.appType;
-    let { email, name, mobile, designation, address, company, country, state, city, fcm_token, edition } = req.body;
-    if (!email) return res.status(400).json({ success: false, message: "Email is required" });
+    const appType = req.query.appType;
+    let {
+      email,
+      name,
+      mobile,
+      designation,
+      address,
+      company,
+      country,
+      state,
+      city,
+      fcm_token,
+      edition,
+    } = req.body;
+
+    if (!email)
+      return res
+        .status(400)
+        .json({ success: false, message: "Email is required" });
 
     email = email.trim().toLowerCase();
-    const checkUserSQL = "SELECT * FROM ai_ticket_payment WHERE LOWER(email) = ?";
-    const [existingUsers] = await db.query(checkUserSQL, [email]);
 
-    if (existingUsers.length > 0) {
-      const updateFCMSQL = "UPDATE ai_ticket_payment SET fcm_token = ? WHERE email = ?";
-      await db.query(updateFCMSQL, [fcm_token, email]);
+    if (appType == "gaisa") {
+      const checkUserSQL =
+        "SELECT * FROM ai_ticket_payment WHERE LOWER(email) = ?";
+      const [existingUsers] = await db.query(checkUserSQL, [email]);
 
-      return res.json({ success: true, user: "existingUsers[0]", message: appType });
+      if (existingUsers.length > 0) {
+        const updateFCMSQL =
+          "UPDATE ai_ticket_payment SET fcm_token = ? WHERE email = ?";
+        await db.query(updateFCMSQL, [fcm_token, email]);
+
+        return res.json({
+          success: true,
+          user: existingUsers[0],
+          message: "Login successful Gaisa. Token updated.",
+        });
+      }
+    } else if (appType == "mahakum") {
+
+      const checkUserSQL =
+        "SELECT * FROM indiafirst_delegate WHERE LOWER(email) = ?";
+      const [existingUsers] = await db2.query(checkUserSQL, [email]);
+
+      if (existingUsers.length > 0) {
+        const updateFCMSQL =
+          "UPDATE indiafirst_delegate SET fcm_token = ? WHERE email = ?";
+        await db2.query(updateFCMSQL, [fcm_token, email]);
+
+        return res.json({
+          success: true,
+          user: existingUsers[0],
+          message: "Login successful Mahakumb. Token updated.",
+        });
+      }
+
     }
 
-    if (!name || !mobile || !designation || !address || !company || !country || !state || !city || !edition) {
-      return res.status(400).json({ success: false, message: "All fields are required for registration" });
+    if (
+      !name ||
+      !mobile ||
+      !designation ||
+      !address ||
+      !company ||
+      !country ||
+      !state ||
+      !city ||
+      !edition
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "All fields are required for registration",
+      });
     }
 
     const insertUserSQL = `
@@ -503,10 +632,29 @@ app.post("/auth", async (req, res) => {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, '', NOW()) 
     `;
 
-    const [result] = await db.query(insertUserSQL, [name, email, mobile, designation, address, company, country, state, city, fcm_token, edition]);
-    const [newUser] = await db.query("SELECT * FROM ai_ticket_payment WHERE id = ?", [result.insertId]);
+    const [result] = await db.query(insertUserSQL, [
+      name,
+      email,
+      mobile,
+      designation,
+      address,
+      company,
+      country,
+      state,
+      city,
+      fcm_token,
+      edition,
+    ]);
+    const [newUser] = await db.query(
+      "SELECT * FROM ai_ticket_payment WHERE id = ?",
+      [result.insertId]
+    );
 
-    res.json({ success: true, message: "User registered successfully!", user: newUser[0] });
+    res.json({
+      success: true,
+      message: "User registered successfully!",
+      user: newUser[0],
+    });
   } catch (error) {
     console.error("Auth error:", error);
     res.status(500).json({ success: false, message: "Internal Server Error" });
@@ -519,14 +667,19 @@ app.post("/payment-success", async (req, res) => {
     const { email, name, payumoney, amount, pass_name } = req.body;
 
     if ((!email && !name) || !payumoney || !amount || !pass_name) {
-      return res.status(400).json({ success: false, message: "Missing required fields" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Missing required fields" });
     }
 
-    const checkPaymentSQL = "SELECT COUNT(*) AS count FROM ai_ticket_payment WHERE payumoney = ?";
+    const checkPaymentSQL =
+      "SELECT COUNT(*) AS count FROM ai_ticket_payment WHERE payumoney = ?";
     const [existingPayments] = await db.query(checkPaymentSQL, [payumoney]);
 
     if (existingPayments[0].count > 0) {
-      return res.status(400).json({ success: false, message: "Payment already recorded" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Payment already recorded" });
     }
 
     const updateSQL = `
@@ -535,17 +688,33 @@ app.post("/payment-success", async (req, res) => {
       WHERE (email = ? OR name = ?)
     `;
 
-    const [result] = await db.query(updateSQL, [payumoney, amount, pass_name, email || "", name || ""]);
+    const [result] = await db.query(updateSQL, [
+      payumoney,
+      amount,
+      pass_name,
+      email || "",
+      name || "",
+    ]);
 
     if (result.affectedRows === 0) {
-      return res.status(404).json({ success: false, message: "User not found or already paid" });
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found or already paid" });
     }
 
     // Fetch updated payment status
-    const fetchUpdatedSQL = "SELECT status, pass_name, amount FROM ai_ticket_payment WHERE (email = ? OR name = ?)";
-    const [updatedUser] = await db.query(fetchUpdatedSQL, [email || "", name || ""]);
+    const fetchUpdatedSQL =
+      "SELECT status, pass_name, amount FROM ai_ticket_payment WHERE (email = ? OR name = ?)";
+    const [updatedUser] = await db.query(fetchUpdatedSQL, [
+      email || "",
+      name || "",
+    ]);
 
-    res.json({ success: true, message: "Payment updated successfully!", payment: updatedUser[0] });
+    res.json({
+      success: true,
+      message: "Payment updated successfully!",
+      payment: updatedUser[0],
+    });
   } catch (error) {
     console.error("Payment update error:", error);
     res.status(500).json({ success: false, message: "Internal Server Error" });
@@ -560,7 +729,9 @@ app.get("/countries", async (req, res) => {
     res.json({ success: true, countries });
   } catch (error) {
     console.error("Fetch countries error:", error);
-    res.status(500).json({ success: false, message: "Error fetching countries" });
+    res
+      .status(500)
+      .json({ success: false, message: "Error fetching countries" });
   }
 });
 
@@ -590,7 +761,6 @@ app.get("/cities/:stateId", async (req, res) => {
   }
 });
 
-
 //  Fetch All Users
 app.get("/users", async (req, res) => {
   try {
@@ -599,7 +769,7 @@ app.get("/users", async (req, res) => {
       FROM ai_ticket_payment 
       WHERE edition = '5th_edition'
     `;
-    
+
     const [users] = await db.query(fetchUsersSQL);
     res.json({ success: true, users });
   } catch (error) {
@@ -607,7 +777,6 @@ app.get("/users", async (req, res) => {
     res.status(500).json({ success: false, message: "Error fetching users" });
   }
 });
-
 
 // Start Server
 const PORT = process.env.PORT || 3000;
