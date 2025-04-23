@@ -608,6 +608,8 @@ app.post("/auth", async (req, res) => {
       }
     }
 
+    //new user 
+
     if (
       !name ||
       !mobile ||
@@ -655,7 +657,8 @@ app.post("/auth", async (req, res) => {
         message: "User registered successfully!",
         user: newUser[0],
       });
-    } else if ((appType = "maha")) {
+    }
+     else if ((appType = "mahakum")) {
       const insertUserSQL = `INSERT INTO indiafirst_delegate (name, email, mobile, designation, address, company, country, state, city, fcm_token, edition, status, amount, payumoney, date) 
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, '', NOW()) 
     `;
