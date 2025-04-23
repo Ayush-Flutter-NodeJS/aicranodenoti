@@ -591,7 +591,6 @@ app.post("/auth", async (req, res) => {
         });
       }
     } else if (appType == "mahakum") {
-
       const checkUserSQL =
         "SELECT * FROM indiafirst_delegate WHERE LOWER(email) = ?";
       const [existingUsers] = await db2.query(checkUserSQL, [email]);
@@ -607,7 +606,6 @@ app.post("/auth", async (req, res) => {
           message: "Login successful Mahakumb. Token updated.",
         });
       }
-
     }
 
     if (
@@ -627,34 +625,65 @@ app.post("/auth", async (req, res) => {
       });
     }
 
-    const insertUserSQL = `
+    if (appType == "gaisa") {
+      const insertUserSQL = `
       INSERT INTO ai_ticket_payment (name, email, mobile, designation, address, company, country, state, city, fcm_token, edition, status, amount, payumoney, date) 
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, '', NOW()) 
     `;
 
-    const [result] = await db.query(insertUserSQL, [
-      name,
-      email,
-      mobile,
-      designation,
-      address,
-      company,
-      country,
-      state,
-      city,
-      fcm_token,
-      edition,
-    ]);
-    const [newUser] = await db.query(
-      "SELECT * FROM ai_ticket_payment WHERE id = ?",
-      [result.insertId]
-    );
+      const [result] = await db.query(insertUserSQL, [
+        name,
+        email,
+        mobile,
+        designation,
+        address,
+        company,
+        country,
+        state,
+        city,
+        fcm_token,
+        edition,
+      ]);
 
-    res.json({
-      success: true,
-      message: "User registered successfully!",
-      user: newUser[0],
-    });
+      const [newUser] = await db.query(
+        "SELECT * FROM ai_ticket_payment WHERE id = ?",
+        [result.insertId]
+      );
+
+      res.json({
+        success: true,
+        message: "User registered successfully!",
+        user: newUser[0],
+      });
+    } else if ((appType = "maha")) {
+      const insertUserSQL = `INSERT INTO indiafirst_delegate (name, email, mobile, designation, address, company, country, state, city, fcm_token, edition, status, amount, payumoney, date) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, '', NOW()) 
+    `;
+      const [result] = await db2.query(insertUserSQL, [
+        name,
+        email,
+        mobile,
+        designation,
+        address,
+        company,
+        country,
+        state,
+        city,
+        fcm_token,
+        edition,
+      ]);
+
+      const [newUser] = await db2.query(
+        "SELECT * FROM indiafirst_delegate WHERE id = ?",
+        [result.insertId]
+      );
+
+      res.json({
+        success: true,
+        message: "User registered successfully!",
+        user: newUser[0],
+      });
+    }
   } catch (error) {
     console.error("Auth error:", error);
     res.status(500).json({ success: false, message: "Internal Server Error" });
