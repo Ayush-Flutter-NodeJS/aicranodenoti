@@ -610,24 +610,42 @@ app.post("/auth", async (req, res) => {
 
     //new user 
 
-    if (
-      !name ||
-      !mobile ||
-      !designation ||
-      !address ||
-      !company ||
-      !country ||
-      !state ||
-      !city ||
-      !edition
-    ) {
-      return res.status(400).json({
-        success: false,
-        message: "All fields are required for registration",
-      });
-    }
+    // if (
+    //   !name ||
+    //   !mobile ||
+    //   !designation ||
+    //   !address ||
+    //   !company ||
+    //   !country ||
+    //   !state ||
+    //   !city ||
+    //   !edition
+    // ) {
+    //   return res.status(400).json({
+    //     success: false,
+    //     message: "All fields are required for registration",
+    //   });
+    // }
 
     if (appType == "gaisa") {
+
+      if (
+        !name ||
+        !mobile ||
+        !designation ||
+        !address ||
+        !company ||
+        !country ||
+        !state ||
+        !city ||
+        !edition
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: "All fields are required for registration",
+        });
+      }
+
       const insertUserSQL = `
       INSERT INTO ai_ticket_payment (name, email, mobile, designation, address, company, country, state, city, fcm_token, edition, status, amount, payumoney, date) 
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, '', NOW()) 
@@ -659,8 +677,26 @@ app.post("/auth", async (req, res) => {
       });
     }
      else if (appType = "mahakum") {
-      const insertUserSQL = `INSERT INTO indiafirst_delegate (name, email, mobile, designation, address, company, country, state, city, fcm_token, edition, status, amount, payumoney, date) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, '', NOW()) 
+
+
+      if (
+        !name ||
+        !mobile ||
+        !designation ||
+        !address ||
+        !country ||
+        !state ||
+        !city ||
+        !edition
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: "All fields are required for registration",
+        });
+      }
+
+      const insertUserSQL = `INSERT INTO indiafirst_delegate (name, email, mobile, designation, address, country, state, city, fcm_token, edition, status, amount, payumoney, date) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, '', NOW()) 
     `;
       const [result] = await db2.query(insertUserSQL, [
         name,
@@ -668,7 +704,6 @@ app.post("/auth", async (req, res) => {
         mobile,
         designation,
         address,
-        company,
         country,
         state,
         city,
