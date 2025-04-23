@@ -441,40 +441,40 @@ app.get("/check-payment", async (req, res) => {
 
 
 //  User Authentication (Login/Register)
-app.post("/auth", async (req, res) => {
-  try {
-    let { email, name, mobile, designation, address, company, country, state, city, fcm_token, edition } = req.body;
-    if (!email) return res.status(400).json({ success: false, message: "Email is required" });
+// app.post("/auth", async (req, res) => {
+//   try {
+//     let { email, name, mobile, designation, address, company, country, state, city, fcm_token, edition } = req.body;
+//     if (!email) return res.status(400).json({ success: false, message: "Email is required" });
 
-    email = email.trim().toLowerCase();
-    const checkUserSQL = "SELECT * FROM ai_ticket_payment WHERE LOWER(email) = ?";
-    const [existingUsers] = await db.query(checkUserSQL, [email]);
+//     email = email.trim().toLowerCase();
+//     const checkUserSQL = "SELECT * FROM ai_ticket_payment WHERE LOWER(email) = ?";
+//     const [existingUsers] = await db.query(checkUserSQL, [email]);
 
-    if (existingUsers.length > 0) {
-      const updateFCMSQL = "UPDATE ai_ticket_payment SET fcm_token = ? WHERE email = ?";
-      await db.query(updateFCMSQL, [fcm_token, email]);
+//     if (existingUsers.length > 0) {
+//       const updateFCMSQL = "UPDATE ai_ticket_payment SET fcm_token = ? WHERE email = ?";
+//       await db.query(updateFCMSQL, [fcm_token, email]);
 
-      return res.json({ success: true, user: existingUsers[0], message: "Login successful. Token updated." });
-    }
+//       return res.json({ success: true, user: existingUsers[0], message: "Login successful. Token updated." });
+//     }
 
-    if (!name || !mobile || !designation || !address || !company || !country || !state || !city || !edition) {
-      return res.status(400).json({ success: false, message: "All fields are required for registration" });
-    }
+//     if (!name || !mobile || !designation || !address || !company || !country || !state || !city || !edition) {
+//       return res.status(400).json({ success: false, message: "All fields are required for registration" });
+//     }
 
-    const insertUserSQL = `
-      INSERT INTO ai_ticket_payment (name, email, mobile, designation, address, company, country, state, city, fcm_token, edition, status, amount, payumoney, date) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, '', NOW()) 
-    `;
+//     const insertUserSQL = `
+//       INSERT INTO ai_ticket_payment (name, email, mobile, designation, address, company, country, state, city, fcm_token, edition, status, amount, payumoney, date) 
+//       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, '', NOW()) 
+//     `;
 
-    const [result] = await db.query(insertUserSQL, [name, email, mobile, designation, address, company, country, state, city, fcm_token, edition]);
-    const [newUser] = await db.query("SELECT * FROM ai_ticket_payment WHERE id = ?", [result.insertId]);
+//     const [result] = await db.query(insertUserSQL, [name, email, mobile, designation, address, company, country, state, city, fcm_token, edition]);
+//     const [newUser] = await db.query("SELECT * FROM ai_ticket_payment WHERE id = ?", [result.insertId]);
 
-    res.json({ success: true, message: "User registered successfully!", user: newUser[0] });
-  } catch (error) {
-    console.error("Auth error:", error);
-    res.status(500).json({ success: false, message: "Internal Server Error" });
-  }
-});
+//     res.json({ success: true, message: "User registered successfully!", user: newUser[0] });
+//   } catch (error) {
+//     console.error("Auth error:", error);
+//     res.status(500).json({ success: false, message: "Internal Server Error" });
+//   }
+// });
 
 //  User Authentication (Login/Register)
 app.post("/auth:appType", async (req, res) => {
