@@ -479,7 +479,7 @@ app.get("/check-payment", async (req, res) => {
 //  User Authentication (Login/Register)
 app.post("/auth", async (req, res) => {
   try {
-    const { appType } = req.query.params;
+    const appType  = req.query.params;
     let { email, name, mobile, designation, address, company, country, state, city, fcm_token, edition } = req.body;
     if (!email) return res.status(400).json({ success: false, message: "Email is required" });
 
