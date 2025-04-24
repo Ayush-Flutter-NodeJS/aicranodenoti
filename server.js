@@ -608,7 +608,7 @@ app.post("/auth", async (req, res) => {
       }
     }
 
-    //new user 
+    //new user
 
     // if (
     //   !name ||
@@ -628,7 +628,6 @@ app.post("/auth", async (req, res) => {
     // }
 
     if (appType == "gaisa") {
-
       if (
         !name ||
         !mobile ||
@@ -675,10 +674,7 @@ app.post("/auth", async (req, res) => {
         message: "User registered successfully!",
         user: newUser[0],
       });
-    }
-     else if (appType =="mahakum") {
-
-
+    } else if (appType == "mahakum") {
       if (
         !name ||
         !mobile ||
@@ -724,7 +720,9 @@ app.post("/auth", async (req, res) => {
     }
   } catch (error) {
     console.error("Auth error:", error);
-    res.status(500).json({ success: false, message: "Internal Server Error",error:error });
+    res
+      .status(500)
+      .json({ success: false, message: "Internal Server Error", error: error });
   }
 });
 
@@ -833,30 +831,29 @@ app.get("/users", async (req, res) => {
   try {
     const appType = req.query.appType;
 
-    if(appType=="gaisa"){
-    const fetchUsersSQL = `
+    if (appType == "gaisa") {
+      const fetchUsersSQL = `
       SELECT id, name, designation, company, fcm_token 
       FROM ai_ticket_payment 
       WHERE edition = '5th_edition'
     `;
 
-    const [users] = await db.query(fetchUsersSQL);
-    res.json({ success: true, users });
-  } else if(appType=="mahakum"){
+      const [users] = await db.query(fetchUsersSQL);
+      res.json({ success: true, users });
+    } else if (appType == "mahakum") {
       const fetchUsersSQL = `
         SELECT id, name, designation, organisation, fcm_token 
         FROM indiafirst_delegate 
-        WHERE edition = '5th_edition'
+        WHERE edition = '5th_Edition'
       `;
-  
+
       const [users] = await db2.query(fetchUsersSQL);
       res.json({ success: true, users });
+    }
+  } catch (error) {
+    console.error("Fetch users error:", error);
+    res.status(500).json({ success: false, message: "Error fetching users" });
   }
-
-}catch (error) {
-  console.error("Fetch users error:", error);
-  res.status(500).json({ success: false, message: "Error fetching users" });
-}
 });
 
 // Start Server
