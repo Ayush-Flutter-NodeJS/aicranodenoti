@@ -729,6 +729,8 @@ app.post("/auth", async (req, res) => {
 //  Update Payment Status and Fetch Details
 app.post("/payment-success", async (req, res) => {
   try {
+    const appType = req.query.appType;
+    if (appType == "gaisa") {
     const { email, name, payumoney, amount, pass_name } = req.body;
 
     if ((!email && !name) || !payumoney || !amount || !pass_name) {
@@ -780,7 +782,60 @@ app.post("/payment-success", async (req, res) => {
       message: "Payment updated successfully!",
       payment: updatedUser[0],
     });
-  } catch (error) {
+  }else if(appType == "mahakum"){
+    const { email, name, payumoney, amount, member_type	 } = req.body;
+
+    if ((!email && !name) || !payumoney || !amount || !member_type	) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Missing required fields" });
+    }
+
+    const checkPaymentSQL =
+      "SELECT COUNT(*) AS count FROM indiafirst_delegate WHERE payumoney = ?";
+    const [existingPayments] = await db2.query(checkPaymentSQL, [payumoney]);
+
+    if (existingPayments[0].count > 0) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Payment already recorded" });
+    }
+
+    const updateSQL = `
+      UPDATE indiafirst_delegate 
+      SET status = 1, payumoney = ?, amount = ?, member_type= ?
+      WHERE (email = ? OR name = ?)
+    `;
+
+    const [result] = await db2.query(updateSQL, [
+      payumoney,
+      amount,
+      member_type,
+      email || "",
+      name || "",
+    ]);
+
+    if (result.affectedRows === 0) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found or already paid" });
+    }
+
+    // Fetch updated payment status
+    const fetchUpdatedSQL =
+      "SELECT status, pass_name, amount FROM indiafirst_delegate WHERE (email = ? OR name = ?)";
+    const [updatedUser] = await db2.query(fetchUpdatedSQL, [
+      email || "",
+      name || "",
+    ]);
+
+    res.json({
+      success: true,
+      message: "Payment updated successfully!",
+      payment: updatedUser[0],
+    });
+  }
+} catch (error) {
     console.error("Payment update error:", error);
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
