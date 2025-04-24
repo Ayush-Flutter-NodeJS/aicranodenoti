@@ -207,18 +207,18 @@ app.post("/fetch-matched-users", async (req, res) => {
 
 //visiotor pass
 app.post("/update-visitor-pass", async (req, res) => {
-  const { email, pass_name } = req.body;
+  const { email, member_type } = req.body;
 
-  if (!email || !pass_name) {
+  if (!email || !member_type) {
     return res
       .status(400)
-      .json({ success: false, message: "Missing email or pass_name" });
+      .json({ success: false, message: "Missing email or member_type" });
   }
 
   try {
     const [result] = await db.execute(
-      "UPDATE ai_ticket_payment SET pass_name = ? WHERE email = ?",
-      [pass_name, email]
+      "UPDATE ai_ticket_payment SET member_type = ? WHERE email = ?",
+      [member_type, email]
     );
 
     if (result.affectedRows > 0) {
@@ -317,7 +317,7 @@ app.get("/user-details", async (req, res) => {
     }
 
     const getUserSQL =
-      "SELECT email, pass_name, profile_picture FROM ai_ticket_payment WHERE email = ?";
+      "SELECT email, member_type, profile_picture FROM ai_ticket_payment WHERE email = ?";
     const [users] = await db.query(getUserSQL, [email]);
 
     if (users.length > 0) {
@@ -368,7 +368,7 @@ app.delete("/delete-account", async (req, res) => {
 app.get("/all-users", async (req, res) => {
   try {
     const getUsersSQL =
-      "SELECT email, pass_name, profile_picture FROM ai_ticket_payment";
+      "SELECT email, member_type, profile_picture FROM ai_ticket_payment";
     const [users] = await db.query(getUsersSQL);
 
     // Format profile picture URL
@@ -488,10 +488,10 @@ app.get("/check-payment", async (req, res) => {
     console.log(` Checking payment for email: ${email}`);
 
     const checkPaymentSQL = `
-      SELECT email, pass_name, status 
+      SELECT email, member_type, status 
       FROM ai_ticket_payment 
       WHERE email = ? 
-      AND pass_name IN ('Platinum Delegate Pass', 'Gold Delegate Pass', 'Standard Delegate Pass');
+      AND member_type IN ('Platinum Delegate Pass', 'Gold Delegate Pass', 'Standard Delegate Pass');
     `;
 
     const [payments] = await db.query(checkPaymentSQL, [email]);
@@ -502,7 +502,7 @@ app.get("/check-payment", async (req, res) => {
       return res.json({
         success: true,
         status: payments[0].status,
-        pass_name: payments[0].pass_name,
+        member_type: payments[0].member_type,
       });
     }
 
@@ -731,9 +731,9 @@ app.post("/payment-success", async (req, res) => {
   try {
     const appType = req.query.appType;
     if (appType == "gaisa") {
-    const { email, name, payumoney, amount, pass_name } = req.body;
+    const { email, name, payumoney, amount, member_type } = req.body;
 
-    if ((!email && !name) || !payumoney || !amount || !pass_name) {
+    if ((!email && !name) || !payumoney || !amount || !member_type) {
       return res
         .status(400)
         .json({ success: false, message: "Missing required fields" });
@@ -751,14 +751,14 @@ app.post("/payment-success", async (req, res) => {
 
     const updateSQL = `
       UPDATE ai_ticket_payment 
-      SET status = 1, payumoney = ?, amount = ?, pass_name = ?
+      SET status = 1, payumoney = ?, amount = ?, member_type = ?
       WHERE (email = ? OR name = ?)
     `;
 
     const [result] = await db.query(updateSQL, [
       payumoney,
       amount,
-      pass_name,
+      member_type,
       email || "",
       name || "",
     ]);
@@ -771,7 +771,7 @@ app.post("/payment-success", async (req, res) => {
 
     // Fetch updated payment status
     const fetchUpdatedSQL =
-      "SELECT status, pass_name, amount FROM ai_ticket_payment WHERE (email = ? OR name = ?)";
+      "SELECT status, member_type, amount FROM ai_ticket_payment WHERE (email = ? OR name = ?)";
     const [updatedUser] = await db.query(fetchUpdatedSQL, [
       email || "",
       name || "",
@@ -823,7 +823,7 @@ app.post("/payment-success", async (req, res) => {
 
     // Fetch updated payment status
     const fetchUpdatedSQL =
-      "SELECT status, pass_name, amount FROM indiafirst_delegate WHERE (email = ? OR name = ?)";
+      "SELECT status, member_type, amount FROM indiafirst_delegate WHERE (email = ? OR name = ?)";
     const [updatedUser] = await db2.query(fetchUpdatedSQL, [
       email || "",
       name || "",
