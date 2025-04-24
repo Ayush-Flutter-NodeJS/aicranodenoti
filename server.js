@@ -485,7 +485,7 @@ app.get("/check-payment", async (req, res) => {
         .json({ success: false, message: "Email is required" });
     }
 
-    console.log(`🔍 Checking payment for email: ${email}`);
+    console.log(` Checking payment for email: ${email}`);
 
     const checkPaymentSQL = `
       SELECT email, pass_name, status 
@@ -831,6 +831,9 @@ app.get("/cities/:stateId", async (req, res) => {
 //  Fetch All Users
 app.get("/users", async (req, res) => {
   try {
+    const appType = req.query.appType;
+
+    if(appType=="gaisa"){
     const fetchUsersSQL = `
       SELECT id, name, designation, company, fcm_token 
       FROM ai_ticket_payment 
@@ -839,10 +842,21 @@ app.get("/users", async (req, res) => {
 
     const [users] = await db.query(fetchUsersSQL);
     res.json({ success: true, users });
-  } catch (error) {
-    console.error("Fetch users error:", error);
-    res.status(500).json({ success: false, message: "Error fetching users" });
+  } else if(appType=="mahakum"){
+      const fetchUsersSQL = `
+        SELECT id, name, designation, organisation, fcm_token 
+        FROM indiafirst_delegate 
+        WHERE edition = '5th_edition'
+      `;
+  
+      const [users] = await db2.query(fetchUsersSQL);
+      res.json({ success: true, users });
   }
+
+}catch (error) {
+  console.error("Fetch users error:", error);
+  res.status(500).json({ success: false, message: "Error fetching users" });
+}
 });
 
 // Start Server
