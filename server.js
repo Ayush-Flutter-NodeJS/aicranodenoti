@@ -474,29 +474,42 @@ app.post("/verify-payment", async (req, res) => {
   }
 });
 
-//  Check if a User Has Paid (By Email)
+// Check if a User Has Paid (By Email and App Type)
 app.get("/check-payment", async (req, res) => {
   try {
-    const { email } = req.query;
+    const { email, appType } = req.query;
+
     if (!email) {
-      console.log(" Email is missing in request");
-      return res
-        .status(400)
-        .json({ success: false, message: "Email is required" });
+      console.log("Email is missing in request");
+      return res.status(400).json({ success: false, message: "Email is required" });
     }
 
-    console.log(` Checking payment for email: ${email}`);
+    console.log(`Checking payment for email: ${email}, appType: ${appType}`);
 
-    const checkPaymentSQL = `
-      SELECT email, member_type, status 
-      FROM ai_ticket_payment 
-      WHERE email = ? 
-      AND member_type IN ('Platinum Delegate Pass', 'Gold Delegate Pass', 'Standard Delegate Pass');
-    `;
+    let checkPaymentSQL = "";
+    let payments = [];
 
-    const [payments] = await db.query(checkPaymentSQL, [email]);
+    if (appType === "gaisa") {
+      checkPaymentSQL = `
+        SELECT email, member_type, status 
+        FROM ai_ticket_payment 
+        WHERE email = ? 
+        AND member_type IN ('Platinum Delegate Pass', 'Gold Delegate Pass', 'Standard Delegate Pass');
+      `;
+      [payments] = await db.query(checkPaymentSQL, [email]);
+    } else if (appType =="mahakum") {
+      checkPaymentSQL = `
+        SELECT email, member_type, status 
+        FROM indiafirst_delegate 
+        WHERE email = ? 
+        AND member_type IN ('Platinum Delegate Pass', 'Gold Delegate Pass', 'Standard Delegate Pass');
+      `;
+      [payments] = await db2.query(checkPaymentSQL, [email]);
+    } else {
+      return res.status(400).json({ success: false, message: "Unsupported appType" });
+    }
 
-    console.log(" Query Result:", payments);
+    console.log("Query Result:", payments);
 
     if (payments.length > 0) {
       return res.json({
@@ -507,11 +520,13 @@ app.get("/check-payment", async (req, res) => {
     }
 
     res.json({ success: false, message: "No payment found" });
+
   } catch (error) {
-    console.error(" Check payment error:", error);
+    console.error("Check payment error:", error);
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 });
+
 
 //  User Authentication (Login/Register)
 // app.post("/auth", async (req, res) => {
