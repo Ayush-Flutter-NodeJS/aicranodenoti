@@ -61,19 +61,32 @@ app.post("/create-order", async (req, res) => {
 app.get("/profile-picture", async (req, res) => {
   try {
     const { email } = req.query;
+    const appType = req.query.appType; // Get the appType from the query params
+
     if (!email)
-      return res
-        .status(400)
-        .json({ success: false, message: "Email required" });
+      return res.status(400).json({ success: false, message: "Email required" });
+    if (!appType)
+      return res.status(400).json({ success: false, message: "appType is required" });
 
-    const getSQL =
-      "SELECT profile_picture FROM ai_ticket_payment WHERE email = ?";
-    const [users] = await db.query(getSQL, [email]);
+    let getSQL;
+    let dbConnection;
 
-    if (!users.length || !users[0].profile_picture)
-      return res
-        .status(404)
-        .json({ success: false, message: "Profile picture not found" });
+    // Determine the table and database connection based on appType
+    if (appType === "gaisa") {
+      getSQL = "SELECT profile_picture FROM ai_ticket_payment WHERE email = ?";
+      dbConnection = db; // for gaisa database
+    } else if (appType === "mahakum") {
+      getSQL = "SELECT profile_picture FROM indiafirst_delegate WHERE email = ?";
+      dbConnection = db2; // for mahakumbh database
+    } else {
+      return res.status(400).json({ success: false, message: "Invalid appType" });
+    }
+
+    const [users] = await dbConnection.query(getSQL, [email]);
+
+    if (!users.length || !users[0].profile_picture) {
+      return res.status(404).json({ success: false, message: "Profile picture not found" });
+    }
 
     res.json({
       success: true,
@@ -84,6 +97,7 @@ app.get("/profile-picture", async (req, res) => {
     res.status(500).json({ success: false, message: "Server Error" });
   }
 });
+
 
 //  Multer Storage for Profile Pictures
 const storage = multer.diskStorage({
