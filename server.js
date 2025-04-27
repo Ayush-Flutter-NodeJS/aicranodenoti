@@ -207,43 +207,51 @@ app.post("/fetch-matched-users", async (req, res) => {
 
 //visiotor pass
 app.post("/update-visitor-pass", async (req, res) => {
-  const { email, member_type } = req.body;
-  const appType = req.query.appType;
-
-  if (!email || !member_type || !appType) {
-    return res.status(400).json({ success: false, message: "Missing email, member_type, or appType" });
-  }
-
-  // Choose table based on appType
-  const tableName = appType == "gaisa" ? "ai_ticket_payment" 
-                 : appType == "mahakum" ? "indiafirst_delegate" 
-                 : null;
-
-  if (!tableName) {
-    return res.status(400).json({ success: false, message: "Invalid appType" });
-  }
-
   try {
-    console.log(`Updating table: ${tableName}, Email: ${email}, Member Type: ${member_type}`);
-  
-    const [result] = await db.execute(
-      `UPDATE ${tableName} SET member_type = ? WHERE email = ?`,
-      [member_type, email]
-    );
-  
-    console.log('Result:', result);
-  
-    if (result.affectedRows > 0) {
-      res.json({ success: true, message: "Visitor Pass updated successfully." });
-    } else {
-      res.status(404).json({ success: false, message: "User not found." });
+    const { email, member_type } = req.body;
+    const appType = req.query.appType;
+
+    if (!email || !member_type || !appType) {
+      return res.status(400).json({ success: false, message: "Missing email, member_type, or appType" });
     }
+
+    if (appType === "gaisa") {
+      const updateQuery = `
+        UPDATE ai_ticket_payment
+        SET member_type = ?
+        WHERE email = ?
+      `;
+      const [result] = await db.execute(updateQuery, [member_type, email]);
+
+      if (result.affectedRows > 0) {
+        res.json({ success: true, message: "Visitor Pass updated successfully." });
+      } else {
+        res.status(404).json({ success: false, message: "User not found." });
+      }
+
+    } else if (appType === "mahakum") {
+      const updateQuery = `
+        UPDATE indiafirst_delegate
+        SET member_type = ?
+        WHERE email = ?
+      `;
+      const [result] = await db2.execute(updateQuery, [member_type, email]);
+
+      if (result.affectedRows > 0) {
+        res.json({ success: true, message: "Visitor Pass updated successfully." });
+      } else {
+        res.status(404).json({ success: false, message: "User not found." });
+      }
+    } else {
+      res.status(400).json({ success: false, message: "Invalid appType" });
+    }
+
   } catch (err) {
-    console.error("Update error:", err);  // <-- See what is printed here
+    console.error("Update error:", err);
     res.status(500).json({ success: false, message: "Server error." });
   }
-  
 });
+
 
 
 app.get("/user-name", async (req, res) => {
