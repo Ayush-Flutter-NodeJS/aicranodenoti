@@ -216,7 +216,7 @@ app.post("/update-visitor-pass", async (req, res) => {
 
   // Choose table based on appType
   const tableName = appType === "gaisa" ? "ai_ticket_payment" 
-                 : appType === "mahakumbh" ? "indiafirst_delegate" 
+                 : appType === "mahakum" ? "indiafirst_delegate" 
                  : null;
 
   if (!tableName) {
