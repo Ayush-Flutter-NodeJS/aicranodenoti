@@ -224,21 +224,25 @@ app.post("/update-visitor-pass", async (req, res) => {
   }
 
   try {
-    // Run the update query on the selected table
+    console.log(`Updating table: ${tableName}, Email: ${email}, Member Type: ${member_type}`);
+  
     const [result] = await db.execute(
       `UPDATE ${tableName} SET member_type = ? WHERE email = ?`,
       [member_type, email]
     );
-
+  
+    console.log('Result:', result);
+  
     if (result.affectedRows > 0) {
       res.json({ success: true, message: "Visitor Pass updated successfully." });
     } else {
       res.status(404).json({ success: false, message: "User not found." });
     }
   } catch (err) {
-    console.error("Update error:", err);
+    console.error("Update error:", err);  // <-- See what is printed here
     res.status(500).json({ success: false, message: "Server error." });
   }
+  
 });
 
 
