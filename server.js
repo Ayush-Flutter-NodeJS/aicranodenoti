@@ -208,21 +208,30 @@ app.post("/fetch-matched-users", async (req, res) => {
 //visiotor pass
 app.post("/update-visitor-pass", async (req, res) => {
   const { email, member_type } = req.body;
+  const appType = req.query.appType;
 
-  if (!email || !member_type) {
-    return res
-      .status(400)
-      .json({ success: false, message: "Missing email or member_type" });
+  if (!email || !member_type || !appType) {
+    return res.status(400).json({ success: false, message: "Missing email, member_type, or appType" });
+  }
+
+  // Choose table based on appType
+  const tableName = appType === "gaisa" ? "ai_ticket_payment" 
+                 : appType === "mahakumbh" ? "indiafirst_delegate" 
+                 : null;
+
+  if (!tableName) {
+    return res.status(400).json({ success: false, message: "Invalid appType" });
   }
 
   try {
+    // Run the update query on the selected table
     const [result] = await db.execute(
-      "UPDATE ai_ticket_payment SET member_type = ? WHERE email = ?",
+      `UPDATE ${tableName} SET member_type = ? WHERE email = ?`,
       [member_type, email]
     );
 
     if (result.affectedRows > 0) {
-      res.json({ success: true, message: "Pass updated to Visitor Pass." });
+      res.json({ success: true, message: "Visitor Pass updated successfully." });
     } else {
       res.status(404).json({ success: false, message: "User not found." });
     }
@@ -231,6 +240,7 @@ app.post("/update-visitor-pass", async (req, res) => {
     res.status(500).json({ success: false, message: "Server error." });
   }
 });
+
 
 app.get("/user-name", async (req, res) => {
   try {
